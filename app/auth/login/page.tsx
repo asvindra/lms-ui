@@ -1,5 +1,11 @@
-import LoginForm from '../../../components/LoginForm';
+"use client";
+
+import LoginForm from "../../../components/LoginForm";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
-  return <LoginForm />;
+  const searchParams = useSearchParams();
+  const redirectAfterLogin = searchParams.get("redirect") || "/dashboard";
+
+  return <LoginForm redirectAfterLogin={redirectAfterLogin} />;
 }
