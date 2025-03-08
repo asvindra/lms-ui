@@ -3,6 +3,7 @@
 import { useDashboard, usePayFee } from "@/lib/hooks/useAdmin";
 import { useSendVerificationEmail, useVerifyStatus } from "@/lib/hooks/useAuth";
 import { Button, Typography, Box } from "@mui/material";
+import Loader from "./Loader/Loader";
 
 const Dashboard = () => {
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboard();
@@ -11,8 +12,7 @@ const Dashboard = () => {
     useSendVerificationEmail();
   const { mutate: payFee, isPending: payingFee } = usePayFee();
 
-  if (dashboardLoading || statusLoading)
-    return <Typography>Loading...</Typography>;
+  if (dashboardLoading || statusLoading) return <Loader />;
 
   const { verification_needed } = dashboardData || {};
   const { status } = statusData || {};
