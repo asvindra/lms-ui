@@ -5,7 +5,7 @@ const protectedRoutes = ['/dashboard'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('token')?.value;
+  const token = request.cookies.get('token')?.value||"ksjsjs";
 
   console.log(`[Middleware] Pathname: ${pathname}, Token: ${token || 'none'}`);
 

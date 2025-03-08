@@ -14,24 +14,17 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { login } from "../lib/api/authApi";
+import { signup } from "../../lib/api/authApi";
 import { useRouter } from "next/navigation";
 
-const loginSchema = z.object({
+const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 
-// Define props interface
-interface LoginFormProps {
-  redirectAfterLogin?: string; // Optional prop with default value in function signature
-}
-
-export default function LoginForm({
-  redirectAfterLogin = "/dashboard",
-}: LoginFormProps) {
+export default function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
@@ -41,25 +34,26 @@ export default function LoginForm({
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema, {}, { mode: "async" }),
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema, {}, { mode: "async" }),
   });
 
   const emailValue = watch("email");
   const passwordValue = watch("password");
 
-  const { mutate: loginMutation, isPending: loading } = useMutation({
-    mutationFn: login,
+  const { mutate: signupMutation, isPending: loading } = useMutation({
+    mutationFn: signup,
     onSuccess: (data) => {
-      setSuccess(data.message);
+      setSuccess(
+        `${data.message} Please check your email to verify your account.`
+      );
       if (typeof window !== "undefined") {
         localStorage.setItem("token", data.token);
-        document.cookie = `token=${data.token}; path=/; max-age=604800;`; // 7 days expiry
+        document.cookie = `token=${data.token}; path=/; max-age=604800;`;
       }
-      router.push(redirectAfterLogin); // Use the prop here
     },
     onError: (err: any) => {
-      setError(err.message || "An error occurred during login.");
+      setError(err.message || "An error occurred during signup.");
     },
   });
 
@@ -69,10 +63,10 @@ export default function LoginForm({
     }
   }, [emailValue, passwordValue, error]);
 
-  const onSubmit = (data: LoginFormData) => {
+  const onSubmit = (data: SignupFormData) => {
     setError(null);
     setSuccess(null);
-    loginMutation(data);
+    signupMutation(data);
   };
 
   return (
@@ -96,29 +90,32 @@ export default function LoginForm({
           m: 2,
         }}
       >
+        {/* Left Side: Gradient Background */}
         <Box
           sx={{
             flex: 1,
             display: { xs: "none", md: "block" },
-            background: "linear-gradient(45deg, #005bc6 0%, #4d87e0 100%)",
+            background: "linear-gradient(45deg, #f4a261 0%, #f7c08a 100%)", // secondary.main to secondary.light
             p: 4,
             color: "white",
           }}
         >
           <Typography variant="h4" fontWeight="bold">
-            Welcome Back
+            Join Us
           </Typography>
           <Typography variant="body1" sx={{ mt: 1 }}>
-            Log in to access your dashboard!
+            Create your account and get started!
           </Typography>
         </Box>
+
+        {/* Right Side: Form */}
         <Box
           component="form"
           onSubmit={handleSubmit(onSubmit)}
           sx={{ flex: 1, p: 4 }}
         >
           <Typography variant="h4" gutterBottom align="center">
-            Log In
+            Sign Up
           </Typography>
           <Divider sx={{ mb: 3 }} />
           {success ? (
@@ -162,16 +159,16 @@ export default function LoginForm({
                 sx={{ mt: 3, py: 1.5 }}
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} /> : "Log In"}
+                {loading ? <CircularProgress size={24} /> : "Sign Up"}
               </Button>
               <Typography sx={{ mt: 2, textAlign: "center" }}>
-                Don’t have an account?{" "}
+                Already have an account?{" "}
                 <Button
-                  href="/auth/signup"
+                  href="/auth/login"
                   color="primary"
                   sx={{ textTransform: "none" }}
                 >
-                  Sign Up
+                  Log In
                 </Button>
               </Typography>
             </>
