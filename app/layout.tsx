@@ -1,12 +1,19 @@
-"use client"
-import { ThemeProvider } from '@mui/material/styles';
-import { theme } from '../lib/mui-theme';
+import ClientLayout from "./ClientLayout"; // New Client Component
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata = {
+  title: "LMS",
+  description: "Next.js LMS",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body>
-        <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <body style={{ margin: 0 }}>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

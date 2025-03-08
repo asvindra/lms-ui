@@ -1,22 +1,30 @@
 "use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button, TextField, Typography, Box, CircularProgress } from '@mui/material';
-import { useState } from 'react';
-import { apiFetch } from '../lib/api';
-import { useRouter } from 'next/navigation';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Button,
+  TextField,
+  Typography,
+  Box,
+  CircularProgress,
+  Paper,
+  Divider,
+} from "@mui/material";
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { signup } from "../lib/api/authApi";
+import { useRouter } from "next/navigation";
 
 const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SignupForm() {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
@@ -25,79 +33,148 @@ export default function SignupForm() {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(signupSchema, {}, { mode: "async" }),
   });
 
-  const onSubmit = async (data: SignupFormData) => {
-    setLoading(true);
+  const emailValue = watch("email");
+  const passwordValue = watch("password");
+
+  const { mutate: signupMutation, isPending: loading } = useMutation({
+    mutationFn: signup,
+    onSuccess: (data) => {
+      setSuccess(
+        `${data.message} Please check your email to verify your account.`
+      );
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+        document.cookie = `token=${data.token}; path=/; max-age=604800;`;
+      }
+    },
+    onError: (err: any) => {
+      setError(err.message || "An error occurred during signup.");
+    },
+  });
+
+  useEffect(() => {
+    if (error && (emailValue || passwordValue)) {
+      setError(null);
+    }
+  }, [emailValue, passwordValue, error]);
+
+  const onSubmit = (data: SignupFormData) => {
     setError(null);
     setSuccess(null);
-    try {
-      const response = await apiFetch('/api/auth/signup', 'POST', data);
-      setSuccess(response.message); // "Signup successful. Please check your email to confirm."
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    signupMutation(data);
   };
 
   return (
     <Box
-      component="form"
-      onSubmit={handleSubmit(onSubmit)}
-      sx={{ maxWidth: 400, mx: 'auto', p: 3 }}
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+      }}
     >
-      <Typography variant="h4" gutterBottom>
-        Sign Up
-      </Typography>
-      {success ? (
-        <Typography color="success.main" sx={{ mt: 2 }}>
-          {success}
-        </Typography>
-      ) : (
-        <>
-          <TextField
-            label="Email"
-            fullWidth
-            margin="normal"
-            {...register('email')}
-            error={!!errors.email}
-            helperText={errors.email?.message}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            {...register('password')}
-            error={!!errors.password}
-            helperText={errors.password?.message}
-          />
-          {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : 'Sign Up'}
-          </Button>
-          <Typography sx={{ mt: 2 }}>
-            Already have an account?{' '}
-            <Button href="/auth/login" color="primary">
-              Log In
-            </Button>
+      <Paper
+        elevation={6}
+        sx={{
+          display: "flex",
+          maxWidth: 900,
+          width: "100%",
+          borderRadius: 2,
+          overflow: "hidden",
+          m: 2,
+        }}
+      >
+        {/* Left Side: Gradient Background */}
+        <Box
+          sx={{
+            flex: 1,
+            display: { xs: "none", md: "block" },
+            background: "linear-gradient(45deg, #f4a261 0%, #f7c08a 100%)", // secondary.main to secondary.light
+            p: 4,
+            color: "white",
+          }}
+        >
+          <Typography variant="h4" fontWeight="bold">
+            Join Us
           </Typography>
-        </>
-      )}
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            Create your account and get started!
+          </Typography>
+        </Box>
+
+        {/* Right Side: Form */}
+        <Box
+          component="form"
+          onSubmit={handleSubmit(onSubmit)}
+          sx={{ flex: 1, p: 4 }}
+        >
+          <Typography variant="h4" gutterBottom align="center">
+            Sign Up
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          {success ? (
+            <Typography
+              color="success.main"
+              sx={{ mt: 2, textAlign: "center" }}
+            >
+              {success}
+            </Typography>
+          ) : (
+            <>
+              <TextField
+                label="Email"
+                fullWidth
+                margin="normal"
+                {...register("email")}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                variant="outlined"
+              />
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                margin="normal"
+                {...register("password")}
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                variant="outlined"
+              />
+              {error && (
+                <Typography color="error" sx={{ mt: 2, textAlign: "center" }}>
+                  {error}
+                </Typography>
+              )}
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                sx={{ mt: 3, py: 1.5 }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : "Sign Up"}
+              </Button>
+              <Typography sx={{ mt: 2, textAlign: "center" }}>
+                Already have an account?{" "}
+                <Button
+                  href="/auth/login"
+                  color="primary"
+                  sx={{ textTransform: "none" }}
+                >
+                  Log In
+                </Button>
+              </Typography>
+            </>
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 }

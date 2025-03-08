@@ -1,94 +1,183 @@
 "use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button, TextField, Typography, Box, CircularProgress } from '@mui/material';
-import { useState } from 'react';
-import { apiFetch } from '../lib/api';
-import { useRouter } from 'next/navigation';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Button,
+  TextField,
+  Typography,
+  Box,
+  CircularProgress,
+  Paper,
+  Divider,
+} from "@mui/material";
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { login } from "../lib/api/authApi";
+import { useRouter } from "next/navigation";
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginForm() {
-  const [loading, setLoading] = useState(false);
+// Define props interface
+interface LoginFormProps {
+  redirectAfterLogin?: string; // Optional prop with default value in function signature
+}
+
+export default function LoginForm({
+  redirectAfterLogin = "/dashboard",
+}: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema, {}, { mode: "async" }),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { token } = await apiFetch('/api/auth/login', 'POST', data);
-      localStorage.setItem('token', token);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const emailValue = watch("email");
+  const passwordValue = watch("password");
+
+  const { mutate: loginMutation, isPending: loading } = useMutation({
+    mutationFn: login,
+    onSuccess: (data) => {
+      setSuccess(data.message);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+        document.cookie = `token=${data.token}; path=/; max-age=604800;`; // 7 days expiry
+      }
+      router.push(redirectAfterLogin); // Use the prop here
+    },
+    onError: (err: any) => {
+      setError(err.message || "An error occurred during login.");
+    },
+  });
+
+  useEffect(() => {
+    if (error && (emailValue || passwordValue)) {
+      setError(null);
     }
+  }, [emailValue, passwordValue, error]);
+
+  const onSubmit = (data: LoginFormData) => {
+    setError(null);
+    setSuccess(null);
+    loginMutation(data);
   };
 
   return (
     <Box
-      component="form"
-      onSubmit={handleSubmit(onSubmit)}
-      sx={{ maxWidth: 400, mx: 'auto', p: 3 }}
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+      }}
     >
-      <Typography variant="h4" gutterBottom>
-        Log In
-      </Typography>
-      <TextField
-        label="Email"
-        fullWidth
-        margin="normal"
-        {...register('email')}
-        error={!!errors.email}
-        helperText={errors.email?.message}
-      />
-      <TextField
-        label="Password"
-        type="password"
-        fullWidth
-        margin="normal"
-        {...register('password')}
-        error={!!errors.password}
-        helperText={errors.password?.message}
-      />
-      {error && (
-        <Typography color="error" sx={{ mt: 2 }}>
-          {error}
-        </Typography>
-      )}
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        fullWidth
-        sx={{ mt: 2 }}
-        disabled={loading}
+      <Paper
+        elevation={6}
+        sx={{
+          display: "flex",
+          maxWidth: 900,
+          width: "100%",
+          borderRadius: 2,
+          overflow: "hidden",
+          m: 2,
+        }}
       >
-        {loading ? <CircularProgress size={24} /> : 'Log In'}
-      </Button>
-      <Typography sx={{ mt: 2 }}>
-        Don’t have an account?{' '}
-        <Button href="/auth/signup" color="primary">
-          Sign Up
-        </Button>
-      </Typography>
+        <Box
+          sx={{
+            flex: 1,
+            display: { xs: "none", md: "block" },
+            background: "linear-gradient(45deg, #005bc6 0%, #4d87e0 100%)",
+            p: 4,
+            color: "white",
+          }}
+        >
+          <Typography variant="h4" fontWeight="bold">
+            Welcome Back
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            Log in to access your dashboard!
+          </Typography>
+        </Box>
+        <Box
+          component="form"
+          onSubmit={handleSubmit(onSubmit)}
+          sx={{ flex: 1, p: 4 }}
+        >
+          <Typography variant="h4" gutterBottom align="center">
+            Log In
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          {success ? (
+            <Typography
+              color="success.main"
+              sx={{ mt: 2, textAlign: "center" }}
+            >
+              {success}
+            </Typography>
+          ) : (
+            <>
+              <TextField
+                label="Email"
+                fullWidth
+                margin="normal"
+                {...register("email")}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                variant="outlined"
+              />
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                margin="normal"
+                {...register("password")}
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                variant="outlined"
+              />
+              {error && (
+                <Typography color="error" sx={{ mt: 2, textAlign: "center" }}>
+                  {error}
+                </Typography>
+              )}
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                sx={{ mt: 3, py: 1.5 }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : "Log In"}
+              </Button>
+              <Typography sx={{ mt: 2, textAlign: "center" }}>
+                Don’t have an account?{" "}
+                <Button
+                  href="/auth/signup"
+                  color="primary"
+                  sx={{ textTransform: "none" }}
+                >
+                  Sign Up
+                </Button>
+              </Typography>
+            </>
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 }
