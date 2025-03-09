@@ -78,7 +78,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", my: "20%", py: 2, height: "100vh" }}>
+    <Box
+      sx={{
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        maxWidth: "1200px",
+        mx: "auto",
+        py: 2,
+      }}
+    >
       <Card
         sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)" }}
       >

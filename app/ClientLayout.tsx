@@ -1,3 +1,4 @@
+// ClientLayout.tsx
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
@@ -8,7 +9,8 @@ import { useRouter, usePathname } from "next/navigation";
 import Header from "@/components/Header/Header";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import Loader from "@/components/Loader/Loader";
-import { Box } from "@mui/material";
+import { Box, CssBaseline } from "@mui/material";
+import { StudentProvider } from "@/lib/context/StudentContext";
 
 const publicRoutes = ["/", "/auth/login", "/auth/signup", "/auth/verify"];
 const protectedRoutes = [
@@ -16,8 +18,8 @@ const protectedRoutes = [
   "/profile",
   "/settings",
   "/analytics",
-  "/profile",
-  "/settings",
+  "/students",
+  "/settings/shifts",
 ];
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
@@ -27,7 +29,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentToken = localStorage.getItem("token") || "jws";
+    const currentToken = localStorage.getItem("token"); // Default token for testing
     setToken(currentToken);
     console.log(
       `[ClientLayout] Pathname: ${pathname}, Token: ${currentToken || "none"}`
@@ -53,35 +55,66 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <QueryProvider>
-      <ThemeProvider theme={theme}>
-        {showLayout ? (
-          <>
-            <Header />
-            <Sidebar />
+    <StudentProvider>
+      <QueryProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline /> {/* Normalize browser styles */}
+          {showLayout ? (
             <Box
-              component="main"
               sx={{
-                flexGrow: 1,
-                p: 3,
-                mt: "64px",
-                ml: { xs: "80px", sm: "240px" },
-                transition: "margin-left 0.3s ease",
-                height: "calc(100vh - 64px)", // Fit viewport minus Header
-                overflowY: "auto", // Scroll within content if needed
+                display: "flex",
+                flexDirection: "column",
+                minHeight: "100vh", // Full viewport height
+                bgcolor: "grey.100", // Subtle background for depth
+              }}
+            >
+              <Header />
+              <Box
+                sx={{
+                  display: "flex",
+                  flexGrow: 1,
+                  overflow: "hidden", // Prevent outer scrolling
+                }}
+              >
+                <Sidebar />
+                <Box
+                  component="main"
+                  sx={{
+                    flexGrow: 1,
+                    ml: { xs: "80px", sm: "240px" }, // Sidebar offset
+                    mt: "64px", // Header offset
+                    p: 4, // Generous padding for a spacious feel
+                    minHeight: "calc(100vh - 64px)", // Fit remaining space
+                    bgcolor: "background.paper", // White content area
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)", // Subtle elevation
+                    borderRadius: 2, // Rounded corners for modern look
+                    display: "flex",
+                    flexDirection: "column",
+                    overflowY: "hidden", // No scrolling until content overflows
+                    transition: "margin-left 0.3s ease",
+                  }}
+                >
+                  {isLoading && <Loader />}
+                  {children}
+                </Box>
+              </Box>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                minHeight: "100vh",
+                bgcolor: "grey.100", // Consistent background
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "hidden", // No scrolling until content overflows
               }}
             >
               {isLoading && <Loader />}
               {children}
             </Box>
-          </>
-        ) : (
-          <Box sx={{ minHeight: "100vh", position: "relative" }}>
-            {isLoading && <Loader />}
-            {children}
-          </Box>
-        )}
-      </ThemeProvider>
-    </QueryProvider>
+          )}
+        </ThemeProvider>
+      </QueryProvider>
+    </StudentProvider>
   );
 }
