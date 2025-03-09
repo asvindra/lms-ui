@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PROTECTED_ROUTES, PUBLIC_ROUTES } from './lib/constants/constants';
 
-const publicRoutes = ['/', '/auth/login', '/auth/signup', '/auth/verify'];
-const protectedRoutes = ['/dashboard'];
+const publicRoutes = PUBLIC_ROUTES
+const protectedRoutes = PROTECTED_ROUTES
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('token')?.value||"ksjsjs";
+  const token = request.cookies.get('token')?.value  // Default for testing
 
-  console.log(`[Middleware] Pathname: ${pathname}, Token: ${token || 'none'}`);
+  console.log(`[Middleware] Pathname: ${pathname}, Token: ${token}`);
 
-  // Allow public routes without authentication
   if (publicRoutes.includes(pathname) || pathname.startsWith('/auth/verify?')) {
     console.log(`[Middleware] Allowing public route: ${pathname}`);
     return NextResponse.next();
   }
 
-  // Protect authenticated routes
-  if (protectedRoutes.includes(pathname)) {
+  if (protectedRoutes.some(route => pathname.startsWith(route))) {
     if (!token) {
-      const loginUrl = new URL('/auth/login', request.url); // Updated to /auth/login
+      const loginUrl = new URL('/auth/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       console.log(`[Middleware] Redirecting to: ${loginUrl}`);
       return NextResponse.redirect(loginUrl);
@@ -27,7 +26,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For any other route, let Next.js handle it (404 if not defined)
   console.log(`[Middleware] Passing to Next.js: ${pathname}`);
   return NextResponse.next();
 }
@@ -35,5 +33,3 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
-
-

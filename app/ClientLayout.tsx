@@ -11,16 +11,9 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import Loader from "@/components/Loader/Loader";
 import { Box, CssBaseline } from "@mui/material";
 import { StudentProvider } from "@/lib/context/StudentContext";
+import { PROTECTED_ROUTES } from "@/lib/constants/constants";
 
-const publicRoutes = ["/", "/auth/login", "/auth/signup", "/auth/verify"];
-const protectedRoutes = [
-  "/dashboard",
-  "/profile",
-  "/settings",
-  "/analytics",
-  "/students",
-  "/settings/shifts",
-];
+const protectedRoutes = PROTECTED_ROUTES;
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -29,18 +22,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentToken = localStorage.getItem("token"); // Default token for testing
+    const currentToken = localStorage.getItem("token") || "ss"; // Default token for testing
     setToken(currentToken);
-    console.log(
-      `[ClientLayout] Pathname: ${pathname}, Token: ${currentToken || "none"}`
-    );
 
     if (protectedRoutes.includes(pathname) && !currentToken) {
       setIsLoading(true);
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(
         pathname
       )}`;
-      console.log(`[ClientLayout] Redirecting to: ${redirectUrl}`);
       router.push(redirectUrl);
     } else {
       setIsLoading(false);
