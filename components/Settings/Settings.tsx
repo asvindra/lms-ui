@@ -18,6 +18,7 @@ import {
   Grid,
 } from "@mui/material";
 import { Add, Delete, Edit, EventSeat } from "@mui/icons-material";
+import { useStudents } from "@/lib/context/StudentContext";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -41,7 +42,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function SettingsPage() {
-  const [tabValue, setTabValue] = useState(0);
+  const { students, addStudent, deleteStudent } = useStudents();
+  const [tabValue, setTabValue] = useState(0); // Fixed: Complete declaration
 
   // State for batch timing
   const [batchTiming, setBatchTiming] = useState<string[]>([
@@ -51,12 +53,11 @@ export default function SettingsPage() {
   const [editTimingIndex, setEditTimingIndex] = useState<number | null>(null);
 
   // State for seats
-  const [seatsInput, setSeatsInput] = useState<number>(30); // Input for total seats
-  const [seats, setSeats] = useState<number>(30); // Confirmed total seats
-  const [occupiedSeats, setOccupiedSeats] = useState<number>(0); // Confirmed occupied seats
+  const [seatsInput, setSeatsInput] = useState<number>(30);
+  const [seats, setSeats] = useState<number>(30);
+  const [occupiedSeats, setOccupiedSeats] = useState<number>(0);
 
   // State for students
-  const [students, setStudents] = useState<{ name: string; id: string }[]>([]);
   const [newStudent, setNewStudent] = useState("");
 
   // State for fee structure
@@ -98,34 +99,34 @@ export default function SettingsPage() {
   // Seats Handlers
   const configureSeats = () => {
     if (seatsInput >= students.length) {
-      setSeats(seatsInput); // Update confirmed seats
-      setOccupiedSeats(students.length); // Sync occupied seats with students
+      setSeats(seatsInput);
+      setOccupiedSeats(students.length);
     } else {
       alert("Total seats cannot be less than the number of students!");
     }
   };
 
   // Students Handlers
-  const addStudent = () => {
-    if (newStudent) {
-      if (students.length < seats) {
-        const updatedStudents = [
-          ...students,
-          { name: newStudent, id: Date.now().toString() },
-        ];
-        setStudents(updatedStudents);
-        setOccupiedSeats(updatedStudents.length); // Update occupied seats immediately for visualization
-        setNewStudent("");
-      } else {
-        alert("No available seats! Increase total seats in the Seats tab.");
-      }
+  const handleAddStudent = () => {
+    if (newStudent && students.length < seats) {
+      addStudent({
+        name: newStudent,
+        batch: batchTiming[0] || "Default Batch",
+        feesPaid: 0,
+        totalFees:
+          feeStructure.reduce((sum, fee) => sum + fee.amount, 0) || 6000,
+        status: "active",
+      });
+      setOccupiedSeats(students.length + 1);
+      setNewStudent("");
+    } else if (students.length >= seats) {
+      alert("No available seats! Increase total seats in the Seats tab.");
     }
   };
 
-  const deleteStudent = (id: string) => {
-    const updatedStudents = students.filter((student) => student.id !== id);
-    setStudents(updatedStudents);
-    setOccupiedSeats(updatedStudents.length); // Update occupied seats immediately
+  const handleDeleteStudent = (id: string) => {
+    deleteStudent(id);
+    setOccupiedSeats(students.length - 1);
   };
 
   // Fee Structure Handlers
@@ -161,15 +162,32 @@ export default function SettingsPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: "1200px", mx: "auto", py: 4 }}>
+    <Box
+      sx={{
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        maxWidth: "1200px",
+        py: 2,
+      }}
+    >
       <Typography variant="h4" gutterBottom>
         Settings
       </Typography>
-      <Paper elevation={3} sx={{ p: 2 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
           aria-label="settings tabs"
+          sx={{ borderBottom: 1, borderColor: "divider" }}
         >
           <Tab label="Batch Timing" />
           <Tab label="Seats" />
@@ -198,23 +216,25 @@ export default function SettingsPage() {
               {editTimingIndex !== null ? "Update" : "Add"}
             </Button>
           </Box>
-          <Table>
-            <TableBody>
-              {batchTiming.map((timing, index) => (
-                <TableRow key={index}>
-                  <TableCell>{timing}</TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => editBatchTiming(index)}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton onClick={() => deleteBatchTiming(index)}>
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 300px)" }}>
+            <Table>
+              <TableBody>
+                {batchTiming.map((timing, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{timing}</TableCell>
+                    <TableCell align="right">
+                      <IconButton onClick={() => editBatchTiming(index)}>
+                        <Edit />
+                      </IconButton>
+                      <IconButton onClick={() => deleteBatchTiming(index)}>
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         </TabPanel>
 
         {/* Seats Tab */}
@@ -222,7 +242,7 @@ export default function SettingsPage() {
           <Typography variant="h6" gutterBottom>
             Configure Seats
           </Typography>
-          <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <TextField
               label="Total Seats"
               type="number"
@@ -239,39 +259,39 @@ export default function SettingsPage() {
           <Typography variant="subtitle1" gutterBottom>
             Available: {seats - occupiedSeats} / {seats}
           </Typography>
-          <Grid container spacing={1} sx={{ maxWidth: "600px" }}>
-            {Array.from({ length: seats }, (_, index) => (
-              <Grid item key={index}>
-                <Box sx={{ position: "relative", display: "inline-block" }}>
-                  <EventSeat
-                    sx={{
-                      fontSize: 40,
-                      color:
-                        index < occupiedSeats ? "grey.500" : "primary.main",
-                      opacity: index < occupiedSeats ? 0.5 : 1,
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "scale(1.1)",
-                      },
-                    }}
-                  />
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      color: index < occupiedSeats ? "grey.900" : "white",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {index + 1}
-                  </Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
+          <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 300px)" }}>
+            <Grid container spacing={1} sx={{ maxWidth: "600px" }}>
+              {Array.from({ length: seats }, (_, index) => (
+                <Grid item key={index}>
+                  <Box sx={{ position: "relative", display: "inline-block" }}>
+                    <EventSeat
+                      sx={{
+                        fontSize: 40,
+                        color:
+                          index < occupiedSeats ? "grey.500" : "primary.main",
+                        opacity: index < occupiedSeats ? 0.5 : 1,
+                        transition: "all 0.3s ease",
+                        "&:hover": { transform: "scale(1.1)" },
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        color: index < occupiedSeats ? "grey.900" : "white",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {index + 1}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
         </TabPanel>
 
         {/* Add Students Tab */}
@@ -288,26 +308,38 @@ export default function SettingsPage() {
             />
             <Button
               variant="contained"
-              onClick={addStudent}
+              onClick={handleAddStudent}
               startIcon={<Add />}
             >
               Add
             </Button>
           </Box>
-          <Table>
-            <TableBody>
-              {students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>{student.name}</TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => deleteStudent(student.id)}>
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 300px)" }}>
+            <Table>
+              <TableBody>
+                {students.length > 0 ? (
+                  students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          onClick={() => handleDeleteStudent(student.id)}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} align="center">
+                      No students added yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Box>
         </TabPanel>
 
         {/* Fee Structure Tab */}
@@ -337,24 +369,26 @@ export default function SettingsPage() {
               {editFeeIndex !== null ? "Update" : "Add"}
             </Button>
           </Box>
-          <Table>
-            <TableBody>
-              {feeStructure.map((fee, index) => (
-                <TableRow key={index}>
-                  <TableCell>{fee.category}</TableCell>
-                  <TableCell align="right">₹{fee.amount}</TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => editFee(index)}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton onClick={() => deleteFee(index)}>
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 300px)" }}>
+            <Table>
+              <TableBody>
+                {feeStructure.map((fee, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{fee.category}</TableCell>
+                    <TableCell align="right">₹{fee.amount}</TableCell>
+                    <TableCell align="right">
+                      <IconButton onClick={() => editFee(index)}>
+                        <Edit />
+                      </IconButton>
+                      <IconButton onClick={() => deleteFee(index)}>
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         </TabPanel>
       </Paper>
     </Box>
