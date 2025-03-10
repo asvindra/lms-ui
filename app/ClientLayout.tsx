@@ -12,6 +12,8 @@ import Loader from "@/components/Loader/Loader";
 import { Box, CssBaseline } from "@mui/material";
 import { StudentProvider } from "@/lib/context/StudentContext";
 import { PROTECTED_ROUTES } from "@/lib/constants/constants";
+import { ToastProvider } from "@/lib/context/ToastContext";
+import "react-toastify/dist/ReactToastify.css";
 
 const protectedRoutes = PROTECTED_ROUTES;
 
@@ -47,61 +49,63 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     <StudentProvider>
       <QueryProvider>
         <ThemeProvider theme={theme}>
-          <CssBaseline /> {/* Normalize browser styles */}
-          {showLayout ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                minHeight: "100vh", // Full viewport height
-                bgcolor: "grey.100", // Subtle background for depth
-              }}
-            >
-              <Header />
+          <ToastProvider>
+            <CssBaseline /> {/* Normalize browser styles */}
+            {showLayout ? (
               <Box
                 sx={{
                   display: "flex",
-                  flexGrow: 1,
-                  overflow: "hidden", // Prevent outer scrolling
+                  flexDirection: "column",
+                  minHeight: "100vh", // Full viewport height
+                  bgcolor: "grey.100", // Subtle background for depth
                 }}
               >
-                <Sidebar />
+                <Header />
                 <Box
-                  component="main"
                   sx={{
-                    flexGrow: 1,
-                    ml: { xs: "80px", sm: "240px" }, // Sidebar offset
-                    mt: "64px", // Header offset
-                    p: 4, // Generous padding for a spacious feel
-                    minHeight: "calc(100vh - 64px)", // Fit remaining space
-                    bgcolor: "background.paper", // White content area
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)", // Subtle elevation
-                    borderRadius: 2, // Rounded corners for modern look
                     display: "flex",
-                    flexDirection: "column",
-                    overflowY: "hidden", // No scrolling until content overflows
-                    transition: "margin-left 0.3s ease",
+                    flexGrow: 1,
+                    overflow: "hidden", // Prevent outer scrolling
                   }}
                 >
-                  {isLoading && <Loader />}
-                  {children}
+                  <Sidebar />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      ml: { xs: "80px", sm: "240px" }, // Sidebar offset
+                      mt: "64px", // Header offset
+                      p: 4, // Generous padding for a spacious feel
+                      minHeight: "calc(100vh - 64px)", // Fit remaining space
+                      bgcolor: "background.paper", // White content area
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)", // Subtle elevation
+                      borderRadius: 2, // Rounded corners for modern look
+                      display: "flex",
+                      flexDirection: "column",
+                      overflowY: "hidden", // No scrolling until content overflows
+                      transition: "margin-left 0.3s ease",
+                    }}
+                  >
+                    {isLoading && <Loader />}
+                    {children}
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                minHeight: "100vh",
-                bgcolor: "grey.100", // Consistent background
-                display: "flex",
-                flexDirection: "column",
-                overflowY: "hidden", // No scrolling until content overflows
-              }}
-            >
-              {isLoading && <Loader />}
-              {children}
-            </Box>
-          )}
+            ) : (
+              <Box
+                sx={{
+                  minHeight: "100vh",
+                  bgcolor: "grey.100", // Consistent background
+                  display: "flex",
+                  flexDirection: "column",
+                  overflowY: "hidden", // No scrolling until content overflows
+                }}
+              >
+                {isLoading && <Loader />}
+                {children}
+              </Box>
+            )}
+          </ToastProvider>
         </ThemeProvider>
       </QueryProvider>
     </StudentProvider>
