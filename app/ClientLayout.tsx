@@ -1,4 +1,3 @@
-// ClientLayout.tsx
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
@@ -11,11 +10,13 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import Loader from "@/components/Loader/Loader";
 import { Box, CssBaseline } from "@mui/material";
 import { StudentProvider } from "@/lib/context/StudentContext";
-import { PROTECTED_ROUTES } from "@/lib/constants/constants";
+import { PROTECTED_ROUTES, PUBLIC_ROUTES } from "@/lib/constants/constants";
 import { ToastProvider } from "@/lib/context/ToastContext";
 import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
 
-const protectedRoutes = PROTECTED_ROUTES;
+const protectedRoutes = PROTECTED_ROUTES; // e.g., ["/dashboard", "/profile"]
+const publicRoutes = PUBLIC_ROUTES; // e.g., ["/auth/login", "/auth/signup", ...]
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -24,17 +25,22 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentToken = localStorage.getItem("token") || "ss"; // Default token for testing
+    const currentToken = localStorage.getItem("token");
     setToken(currentToken);
+    setIsLoading(false);
 
+    // If token exists and user is on a public route, redirect to dashboard
+    if (currentToken && publicRoutes.includes(pathname)) {
+      router.push("/dashboard");
+      return;
+    }
+
+    // If no token and user is on a protected route, redirect to login
     if (protectedRoutes.includes(pathname) && !currentToken) {
-      setIsLoading(true);
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(
         pathname
       )}`;
       router.push(redirectUrl);
-    } else {
-      setIsLoading(false);
     }
   }, [pathname, router]);
 
@@ -50,14 +56,15 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <QueryProvider>
         <ThemeProvider theme={theme}>
           <ToastProvider>
-            <CssBaseline /> {/* Normalize browser styles */}
+            <ToastContainer />
+            <CssBaseline />
             {showLayout ? (
               <Box
                 sx={{
                   display: "flex",
                   flexDirection: "column",
-                  minHeight: "100vh", // Full viewport height
-                  bgcolor: "grey.100", // Subtle background for depth
+                  minHeight: "100vh",
+                  bgcolor: "grey.100",
                 }}
               >
                 <Header />
@@ -65,7 +72,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                   sx={{
                     display: "flex",
                     flexGrow: 1,
-                    overflow: "hidden", // Prevent outer scrolling
+                    overflow: "hidden",
                   }}
                 >
                   <Sidebar />
@@ -73,20 +80,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      ml: { xs: "80px", sm: "240px" }, // Sidebar offset
-                      mt: "64px", // Header offset
-                      p: 4, // Generous padding for a spacious feel
-                      minHeight: "calc(100vh - 64px)", // Fit remaining space
-                      bgcolor: "background.paper", // White content area
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)", // Subtle elevation
-                      borderRadius: 2, // Rounded corners for modern look
+                      ml: { xs: "80px", sm: "240px" },
+                      mt: "64px",
+                      p: 4,
+                      minHeight: "calc(100vh - 64px)",
+                      bgcolor: "background.paper",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+                      borderRadius: 2,
                       display: "flex",
                       flexDirection: "column",
-                      overflowY: "hidden", // No scrolling until content overflows
+                      overflowY: "hidden",
                       transition: "margin-left 0.3s ease",
                     }}
                   >
-                    {isLoading && <Loader />}
                     {children}
                   </Box>
                 </Box>
@@ -95,13 +101,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               <Box
                 sx={{
                   minHeight: "100vh",
-                  bgcolor: "grey.100", // Consistent background
+                  bgcolor: "grey.100",
                   display: "flex",
                   flexDirection: "column",
-                  overflowY: "hidden", // No scrolling until content overflows
+                  overflowY: "hidden",
                 }}
               >
-                {isLoading && <Loader />}
                 {children}
               </Box>
             )}

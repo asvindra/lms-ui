@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { signup, login, sendVerificationEmail, verifyEmail, getVerifyStatus } from '../api/authApi';
+import { signup, login, } from '../api/authApi';
 
 export const useSignup = () => {
   return useMutation({
@@ -18,25 +18,3 @@ export const useLogin = () => {
   });
 };
 
-export const useSendVerificationEmail = () => {
-  return useMutation({
-    mutationFn: sendVerificationEmail,
-  });
-};
-
-export const useVerifyEmail = (token: string) => {
-  return useQuery({
-    queryKey: ['verifyEmail', token],
-    queryFn: () => verifyEmail(token),
-    enabled: !!token,
-    retry:false
-  });
-};
-
-export const useVerifyStatus = () => {
-  return useQuery({
-    queryKey: ['verifyStatus'],
-    queryFn: getVerifyStatus,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
