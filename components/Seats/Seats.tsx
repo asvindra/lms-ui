@@ -1,0 +1,375 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/lib/context/ToastContext";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  configureSeats,
+  getSeatConfig,
+  updateSeatConfig,
+  deleteSeat,
+} from "@/lib/api/adminApi";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  CircularProgress,
+  Paper,
+  Divider,
+  Fade,
+  Grid,
+  Tooltip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Card,
+  CardContent,
+  CardActions,
+  InputAdornment,
+} from "@mui/material";
+import EventSeatIcon from "@mui/icons-material/EventSeat";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+// Schema for seat configuration
+const seatConfigSchema = z.object({
+  numSeats: z
+    .number()
+    .min(1, "Number of seats must be at least 1")
+    .max(100, "Number of seats cannot exceed 100"),
+});
+
+type SeatConfigFormData = z.infer<typeof seatConfigSchema>;
+
+interface Seat {
+  id: string;
+  seat_number: number;
+  reserved_by?: string; // Student ID
+  shift_id?: string; // Shift ID
+  shift_number?: number; // Populated on frontend
+}
+
+export default function ConfigureSeats() {
+  const router = useRouter();
+  const { success: toastSuccess, error: toastError } = useToast();
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Fetch seat configuration
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["seatConfig"],
+    queryFn: getSeatConfig,
+  });
+
+  // Form setup for configuring seats
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SeatConfigFormData>({
+    resolver: zodResolver(seatConfigSchema),
+    defaultValues: { numSeats: 20 },
+  });
+
+  // Mutation to configure seats
+  const { mutate: configureSeatsMutation, isPending: isConfiguring } =
+    useMutation({
+      mutationFn: configureSeats,
+      onSuccess: () => {
+        toastSuccess("Seats configured successfully!");
+        refetch();
+      },
+      onError: (err: any) => {
+        toastError(err.response.data.error || "Failed to configure seats");
+      },
+    });
+
+  // Mutation to update seat (remove reservation)
+  const { mutate: updateSeatMutation, isPending: isUpdating } = useMutation({
+    mutationFn: ({ seatId }: { seatId: string }) => updateSeatConfig(seatId),
+    onSuccess: () => {
+      toastSuccess("Seat reservation removed successfully!");
+      refetch();
+      setDialogOpen(false);
+      setSelectedSeat(null);
+    },
+    onError: (err: any) => {
+      toastError(err.message || "Failed to update seat");
+    },
+  });
+
+  // Mutation to delete seat
+  const { mutate: deleteSeatMutation, isPending: isDeleting } = useMutation({
+    mutationFn: ({ seatId }: { seatId: string }) => deleteSeat(seatId),
+    onSuccess: () => {
+      toastSuccess("Seat deleted successfully!");
+      refetch();
+      setDialogOpen(false);
+      setSelectedSeat(null);
+    },
+    onError: (err: any) => {
+      toastError(err.response.data.error || "Failed to delete seat");
+    },
+  });
+
+  useEffect(() => {
+    if (error) {
+      toastError(error.message || "Failed to fetch seat configuration");
+    }
+  }, [error, toastError]);
+
+  const onConfigureSubmit = (data: SeatConfigFormData) => {
+    configureSeatsMutation(data);
+  };
+
+  const handleSeatClick = (seat: Seat) => {
+    setSelectedSeat(seat);
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedSeat(null);
+  };
+
+  const handleRemoveReservation = () => {
+    if (selectedSeat) {
+      updateSeatMutation({ seatId: selectedSeat.id });
+    }
+  };
+
+  const handleDeleteSeat = () => {
+    if (selectedSeat) {
+      deleteSeatMutation({ seatId: selectedSeat.id });
+    }
+  };
+
+  const isPending = isConfiguring || isUpdating || isDeleting;
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        bgcolor: "grey.100",
+        p: 3,
+        background: "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      }}
+    >
+      <Fade in={true} timeout={600}>
+        <Paper
+          elevation={10}
+          sx={{
+            maxWidth: 800,
+            width: "100%",
+            p: 4,
+            borderRadius: 3,
+            background: "white",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+            color="primary"
+            gutterBottom
+            sx={{ textAlign: "center", mb: 2 }}
+          >
+            Seat Configuration
+          </Typography>
+          <Divider sx={{ mb: 3, bgcolor: "grey.300" }} />
+
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error">
+              {error.message || "Failed to load seats"}
+            </Alert>
+          ) : (
+            <>
+              {/* Seat Configuration Form */}
+              {!data || data.seats.length === 0 ? (
+                <Card sx={{ bgcolor: "grey.50", borderRadius: 2, p: 2, mb: 3 }}>
+                  <CardContent>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      Configure the number of seats (default: 20).
+                    </Typography>
+                    <Box
+                      component="form"
+                      onSubmit={handleSubmit(onConfigureSubmit)}
+                      sx={{ mt: 2 }}
+                    >
+                      <TextField
+                        label="Number of Seats"
+                        type="number"
+                        fullWidth
+                        {...register("numSeats", { valueAsNumber: true })}
+                        error={!!errors.numSeats}
+                        helperText={errors.numSeats?.message}
+                        disabled={isPending}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <EventSeatIcon color="action" />
+                            </InputAdornment>
+                          ),
+                          inputProps: { min: 1, max: 100 },
+                        }}
+                        sx={{
+                          mb: 3,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "8px",
+                            "&:hover fieldset": { borderColor: "primary.main" },
+                          },
+                        }}
+                      />
+                      <CardActions sx={{ justifyContent: "flex-end" }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          type="submit"
+                          disabled={isPending}
+                          sx={{ borderRadius: "20px", px: 3 }}
+                        >
+                          {isConfiguring ? (
+                            <CircularProgress size={24} />
+                          ) : (
+                            "Configure"
+                          )}
+                        </Button>
+                      </CardActions>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {/* Seat Management Grid */}
+                  <Grid container spacing={2} justifyContent="center">
+                    {data.seats.map((seat: Seat) => (
+                      <Grid item key={seat.id}>
+                        <Tooltip
+                          title={
+                            seat.reserved_by
+                              ? `Reserved by Student ${seat.reserved_by} for Shift ${seat.shift_number}`
+                              : "Available"
+                          }
+                          arrow
+                          placement="top"
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              p: 1,
+                              borderRadius: 2,
+                              bgcolor: seat.reserved_by
+                                ? "grey.300"
+                                : "primary.light",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                bgcolor: seat.reserved_by
+                                  ? "grey.400"
+                                  : "primary.main",
+                                transform: "scale(1.1)",
+                              },
+                            }}
+                            onClick={() => handleSeatClick(seat)}
+                          >
+                            <EventSeatIcon
+                              sx={{
+                                fontSize: 40,
+                                color: seat.reserved_by ? "grey.700" : "white",
+                              }}
+                            />
+                            <Typography
+                              variant="caption"
+                              color={seat.reserved_by ? "grey.700" : "white"}
+                            >
+                              Seat {seat.seat_number}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </>
+              )}
+
+              {/* Dialog for seat actions */}
+              <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+                <DialogTitle>
+                  Seat {selectedSeat?.seat_number} Details
+                </DialogTitle>
+                <DialogContent>
+                  {selectedSeat?.reserved_by ? (
+                    <Typography>
+                      Reserved by Student {selectedSeat.reserved_by} for Shift{" "}
+                      {selectedSeat.shift_number}
+                    </Typography>
+                  ) : (
+                    <Typography>This seat is available.</Typography>
+                  )}
+                </DialogContent>
+                <DialogActions>
+                  <Button
+                    onClick={handleCloseDialog}
+                    color="secondary"
+                    disabled={isPending}
+                  >
+                    Cancel
+                  </Button>
+                  {selectedSeat?.reserved_by && (
+                    <Button
+                      onClick={handleRemoveReservation}
+                      color="warning"
+                      disabled={isPending}
+                      startIcon={<EditIcon />}
+                    >
+                      {isUpdating ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        "Remove Reservation"
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleDeleteSeat}
+                    color="error"
+                    disabled={
+                      isPending || (selectedSeat?.reserved_by ? true : false)
+                    }
+                    startIcon={<DeleteIcon />}
+                  >
+                    {isDeleting ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      "Delete Seat"
+                    )}
+                  </Button>
+                </DialogActions>
+              </Dialog>
+            </>
+          )}
+        </Paper>
+      </Fade>
+    </Box>
+  );
+}
