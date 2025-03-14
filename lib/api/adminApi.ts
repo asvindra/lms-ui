@@ -1,26 +1,71 @@
-import apiClient from './apiClient';
+import {
+  CONFIGURE_SEATS,
+  CONFIGURE_SHIFTS,
+  CONFIG_SEAT,
+  DELETE_SEAT,
+  DELETE_SHIFTS,
+  DELETE_SHIFTS_BY_ID,
+  SHIFTS_CONFIGURED,
+  UPDATE_SEAT,
+  UPDATE_SHIFTS,
+} from "../constants/endpoints";
+import apiClient from "./apiClient";
 
-interface PayFeeResponse {
-  message: string;
-  admin: { id: string; email: string; fee_paid: boolean; approved_by_master: boolean };
+interface ConfigureShiftsRequest {}
+interface ConfigureShiftsResponse {}
+interface ShiftsConfiguredResponse {
+  discounts: [];
+  shifts: [];
 }
+interface ShiftsConfiguredRequest {}
+interface deleteShiftsRequest {}
+interface UpdateShiftsRequest {}
+interface DeleteShiftsResponse {}
+interface updateShiftsResponse {}
+interface ConfigSeatsRequest {}
+interface ConfigSeatsResponse {}
+export const configureShifts = (data: any) =>
+  apiClient
+    .post<ConfigureShiftsResponse>(CONFIGURE_SHIFTS, data)
+    .then((res) => {
+      return res.data;
+    });
 
-interface ApproveAdminResponse {
-  message: string;
-  admin: { id: string; email: string; approved_by_master: boolean; fee_paid: boolean };
-}
+export const getConfiguredShifts = () =>
+  apiClient.get<ShiftsConfiguredRequest>(SHIFTS_CONFIGURED).then((res: any) => {
+    return res.data;
+  });
 
-interface DashboardResponse {
-  message: string;
-  user: any;
-  verification_needed: boolean;
-}
+export const deleteShifts = () =>
+  apiClient.delete<DeleteShiftsResponse>(DELETE_SHIFTS).then((res) => {
+    return res.data;
+  });
+export const deleteShiftById = (id: any) =>
+  apiClient
+    .delete<DeleteShiftsResponse>(`${DELETE_SHIFTS_BY_ID}/${id}`)
+    .then((res) => {
+      return res.data;
+    });
+export const updateShifts = (data: any) =>
+  apiClient.post<UpdateShiftsRequest>(UPDATE_SHIFTS, data).then((res) => {
+    return res.data;
+  });
+export const configureSeats = (data: any) =>
+  apiClient.post<ConfigSeatsRequest>(CONFIGURE_SEATS, data).then((res: any) => {
+    return res.data;
+  });
+export const getSeatConfig = (data: any) =>
+  apiClient.get<ConfigSeatsRequest>(CONFIG_SEAT, data).then((res: any) => {
+    return res.data;
+  });
 
-export const payFee = () =>
-  apiClient.post<PayFeeResponse>('/admin/pay-fee').then((res) => res.data);
-
-export const approveAdmin = (adminId: string) =>
-  apiClient.post<ApproveAdminResponse>(`/admin/approve/${adminId}`).then((res) => res.data);
-
-export const getDashboard = () =>
-  apiClient.get<DashboardResponse>('/admin/dashboard').then((res) => res.data);
+export const updateSeatConfig = (data: any) =>
+  apiClient.post<ConfigSeatsRequest>(UPDATE_SEAT, data).then((res: any) => {
+    return res.data;
+  });
+export const deleteSeat = (data: any) =>
+  apiClient
+    .delete<ConfigSeatsRequest>(`${DELETE_SEAT}/${data}`, data)
+    .then((res: any) => {
+      return res.data;
+    });

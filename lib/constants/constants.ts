@@ -5,6 +5,9 @@ export const PROTECTED_ROUTES = [
   "/analytics",
   "/students",
   "/settings/shifts",
+  "/configure/shifts",
+  "/configure/shifts-configured",
+  "/configure/seats",
 ];
 
 export const PUBLIC_ROUTES = [
