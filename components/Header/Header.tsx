@@ -10,7 +10,7 @@ export default function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    document.cookie = "token=; path=/; max-age=0;";
+    document.cookie = "token=; path=/; max-age=0"; // Clear cookie
     router.push("/auth/login");
   };
 

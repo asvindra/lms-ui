@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "../../lib/api/authApi";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/lib/context/ToastContext"; // Add Toast integration
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -24,7 +25,6 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-// Define props interface
 interface LoginFormProps {
   redirectAfterLogin?: string; // Optional prop with default value in function signature
 }
@@ -35,6 +35,7 @@ export default function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const {
     register,
@@ -52,14 +53,19 @@ export default function LoginForm({
     mutationFn: login,
     onSuccess: (data) => {
       setSuccess(data.message);
+      toastSuccess("Login successful!");
       if (typeof window !== "undefined") {
         localStorage.setItem("token", data.token);
-        document.cookie = `token=${data.token}; path=/; max-age=604800;`; // 7 days expiry
+        document.cookie = `token=${data.token}; path=/; max-age=604800;`;
       }
-      router.push(redirectAfterLogin); // Use the prop here
+      router.push(redirectAfterLogin);
     },
     onError: (err: any) => {
-      setError(err.message || "An error occurred during login.");
+      const errorMessage =
+        err.response.data.error || "An error occurred during login.";
+      console.log("eee", errorMessage);
+      setError(errorMessage);
+      toastError(errorMessage);
     },
   });
 
@@ -121,49 +127,45 @@ export default function LoginForm({
             Log In
           </Typography>
           <Divider sx={{ mb: 3 }} />
-          {success ? (
-            <Typography
-              color="success.main"
-              sx={{ mt: 2, textAlign: "center" }}
+
+          <>
+            <TextField
+              label="Email"
+              fullWidth
+              margin="normal"
+              {...register("email")}
+              error={!!errors.email}
+              helperText={errors.email?.message}
+              variant="outlined"
+            />
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              margin="normal"
+              {...register("password")}
+              error={!!errors.password}
+              helperText={errors.password?.message}
+              variant="outlined"
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 3, py: 1.5 }}
+              disabled={loading}
             >
-              {success}
-            </Typography>
-          ) : (
-            <>
-              <TextField
-                label="Email"
-                fullWidth
-                margin="normal"
-                {...register("email")}
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                variant="outlined"
-              />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-                margin="normal"
-                {...register("password")}
-                error={!!errors.password}
-                helperText={errors.password?.message}
-                variant="outlined"
-              />
-              {error && (
-                <Typography color="error" sx={{ mt: 2, textAlign: "center" }}>
-                  {error}
-                </Typography>
-              )}
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                sx={{ mt: 3, py: 1.5 }}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} /> : "Log In"}
-              </Button>
+              {loading ? <CircularProgress size={24} /> : "Log In"}
+            </Button>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Typography sx={{ mt: 2, textAlign: "center" }}>
                 Don’t have an account?{" "}
                 <Button
@@ -174,8 +176,17 @@ export default function LoginForm({
                   Sign Up
                 </Button>
               </Typography>
-            </>
-          )}
+              <div>
+                <Button
+                  href="/auth/forgot-password"
+                  color="secondary"
+                  sx={{ textTransform: "none" }}
+                >
+                  Forgot Password?
+                </Button>
+              </div>
+            </Box>
+          </>
         </Box>
       </Paper>
     </Box>

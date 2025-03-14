@@ -1,4 +1,11 @@
-import apiClient from './apiClient';
+import {
+  CONFIRM,
+  FORGOT_PASSWORD,
+  LOGIN,
+  SIGNUP,
+  VERIFICATION,
+} from "../constants/endpoints";
+import apiClient from "./apiClient";
 
 interface SignupRequest {
   email: string;
@@ -22,30 +29,48 @@ interface LoginResponse {
   token: string;
 }
 
-interface VerifyResponse {
+interface ForgotPasswordRequest {
+  email: string;
+}
+interface ForgotPasswordResponse {
   message: string;
-  user: { id: string; email: string };
+}
+interface ConfirmPasswordResponse {
+  message: string;
+}
+
+interface VerificationRequest {
+  email: string;
+  otp: number;
 }
 
 export const signup = (data: SignupRequest) =>
-  apiClient.post<SignupResponse>('/auth/signup', data).then((res) => res.data);
+  apiClient.post<SignupResponse>(SIGNUP, data).then((res) => res.data);
 
 export const login = (data: LoginRequest) =>
-  apiClient.post<LoginResponse>('/auth/login', data).then((res) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', res.data.token);
+  apiClient.post<LoginResponse>(LOGIN, data).then((res) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", res.data.token);
     }
     return res.data;
   });
 
-export const sendVerificationEmail = () =>
-  apiClient.post<{ message: string }>('/auth/send-verification').then((res) => res.data);
+export const forgotPassword = (data: ForgotPasswordRequest) =>
+  apiClient.post<ForgotPasswordResponse>(FORGOT_PASSWORD, data).then((res) => {
+    return res.data;
+  });
 
-export const verifyEmail = (token: string) =>
-  apiClient.get<VerifyResponse>(`/auth/verify?token=${token}`).then((res) => res.data);
+export const verifyOtp = (data: VerificationRequest) =>
+  apiClient.post<ForgotPasswordResponse>(VERIFICATION, data).then((res) => {
+    return res.data;
+  });
 
-export const getVerifyStatus = () =>
-  apiClient.get<{
-    message: string;
-    status: { email_verified: boolean; fee_paid: boolean; approved_by_master: boolean; is_master: boolean };
-  }>('/auth/verify-status').then((res) => res.data);
+export const resendOtp = (data: any) =>
+  apiClient.post<ForgotPasswordResponse>(FORGOT_PASSWORD, data).then((res) => {
+    return res.data;
+  });
+
+export const confirmPassword = (data: any) =>
+  apiClient.post<ConfirmPasswordResponse>(CONFIRM, data).then((res) => {
+    return res.data;
+  });
