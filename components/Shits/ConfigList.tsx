@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/context/ToastContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   getConfiguredShifts,
-  updateShifts,
+  updateShifts, // Renamed from updateShifts for clarity
   deleteShifts,
   deleteShiftById,
 } from "@/lib/api/adminApi";
@@ -23,16 +22,52 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  TextField,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import Table from "../Table/Table";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+// Schema for updating a shift and discounts
+const updateShiftSchema = (numShifts: number) =>
+  z.object({
+    shiftNumber: z.number().min(1).max(numShifts),
+    startTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "Invalid time format (HH:MM)"
+      ),
+    endTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "Invalid time format (HH:MM)"
+      ),
+    fees: z.number().min(0, "Fees cannot be negative"),
+    discountAllShifts: z.number().min(0).max(100).optional(),
+    ...(numShifts >= 2 && {
+      discountSingle: z.number().min(0).max(100).optional(),
+    }),
+    ...(numShifts >= 3 && {
+      discountDouble: z.number().min(0).max(100).optional(),
+    }),
+    ...(numShifts === 4 && {
+      discountTriple: z.number().min(0).max(100).optional(),
+    }),
+  });
+
+type UpdateShiftFormData = z.infer<ReturnType<typeof updateShiftSchema>>;
 
 export default function ShiftsConfigured() {
-  const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState<number | null>(null);
+  const [editShift, setEditShift] = useState<any | null>(null);
 
   // Fetch configured shifts
   const { data, isLoading, error, refetch } = useQuery({
@@ -69,19 +104,33 @@ export default function ShiftsConfigured() {
       },
     });
 
+  // Mutation to update a shift
+  const { mutate: updateShiftMutation, isPending: isUpdating } = useMutation({
+    mutationFn: updateShifts,
+    onSuccess: () => {
+      toastSuccess("Shift updated successfully!");
+      refetch();
+      setEditShift(null);
+    },
+    onError: (err: any) => {
+      toastError(err.message || "Failed to update shift");
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<UpdateShiftFormData>({
+    resolver: zodResolver(updateShiftSchema(data?.shifts.length || 1)),
+  });
+
   useEffect(() => {
     if (error) {
       setErrorMessage(error.message || "Failed to fetch configured shifts");
     }
   }, [error]);
-
-  const handleUpdate = () => {
-    router.push("/admin/configure-shifts");
-  };
-
-  const handleDeleteAll = () => {
-    deleteShiftsMutation();
-  };
 
   const handleOpenDeleteAllDialog = () => {
     setDeleteDialogOpen(true);
@@ -95,6 +144,51 @@ export default function ShiftsConfigured() {
   const handleDeleteSingle = (shiftNumber: number) => {
     setShiftToDelete(shiftNumber);
     deleteShiftMutation(shiftNumber);
+  };
+
+  const handleEditShift = (shift: any) => {
+    setEditShift(shift);
+    setValue("shiftNumber", shift.shift_number);
+    setValue("startTime", shift.start_time);
+    setValue("endTime", shift.end_time);
+    setValue("fees", shift.fees);
+    data?.discounts.forEach((discount: any) => {
+      if (discount.min_shifts === data.shifts.length) {
+        setValue("discountAllShifts", discount.discount_percentage);
+      } else if (discount.min_shifts === 1) {
+        setValue("discountSingle", discount.discount_percentage);
+      } else if (discount.min_shifts === 2) {
+        setValue("discountDouble", discount.discount_percentage);
+      } else if (discount.min_shifts === 3) {
+        setValue("discountTriple", discount.discount_percentage);
+      }
+    });
+  };
+
+  const onUpdateSubmit = (formData: UpdateShiftFormData) => {
+    updateShiftMutation({
+      shiftNumber: formData.shiftNumber,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      fees: formData.fees,
+      discounts: {
+        ...(formData.discountAllShifts !== undefined && {
+          discountAllShifts: formData.discountAllShifts,
+        }),
+        ...(data?.shifts.length >= 2 &&
+          formData.discountSingle !== undefined && {
+            discountSingle: formData.discountSingle,
+          }),
+        ...(data?.shifts.length >= 3 &&
+          formData.discountDouble !== undefined && {
+            discountDouble: formData.discountDouble,
+          }),
+        ...(data?.shifts.length === 4 &&
+          formData.discountTriple !== undefined && {
+            discountTriple: formData.discountTriple,
+          }),
+      },
+    });
   };
 
   const isDeleting = isDeletingAll || isDeletingSingle;
@@ -113,13 +207,22 @@ export default function ShiftsConfigured() {
       key: "actions" as const,
       label: "Actions",
       render: (_: any, row: any) => (
-        <IconButton
-          color="error"
-          onClick={() => handleDeleteSingle(row.shift_number)}
-          disabled={isDeleting}
-        >
-          <DeleteIcon />
-        </IconButton>
+        <>
+          <IconButton
+            color="primary"
+            onClick={() => handleEditShift(row)}
+            disabled={isDeleting || isUpdating}
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDeleteSingle(row.shift_number)}
+            disabled={isDeleting || isUpdating}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </>
       ),
     },
   ];
@@ -201,19 +304,11 @@ export default function ShiftsConfigured() {
                 mt: 4,
               }}
             >
-              {/* <Button
-                variant="contained"
-                color="primary"
-                onClick={handleUpdate}
-                disabled={isDeleting}
-              >
-                Update Shifts
-              </Button> */}
               <Button
                 variant="contained"
                 color="error"
                 onClick={handleOpenDeleteAllDialog}
-                disabled={isDeleting || !data?.shifts.length}
+                disabled={isDeleting || isUpdating || !data?.shifts.length}
               >
                 {isDeletingAll ? (
                   <CircularProgress size={24} />
@@ -237,7 +332,7 @@ export default function ShiftsConfigured() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleDeleteAll}
+                  onClick={() => deleteShiftsMutation()}
                   color="error"
                   disabled={isDeleting}
                 >
@@ -246,6 +341,123 @@ export default function ShiftsConfigured() {
                   ) : (
                     "Delete All"
                   )}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
+            {/* Update Shift Dialog */}
+            <Dialog open={!!editShift} onClose={() => setEditShift(null)}>
+              <DialogTitle>Update Shift {editShift?.shift_number}</DialogTitle>
+              <DialogContent>
+                <Box component="form" onSubmit={handleSubmit(onUpdateSubmit)}>
+                  <TextField
+                    label="Shift Number"
+                    type="number"
+                    fullWidth
+                    {...register("shiftNumber", { valueAsNumber: true })}
+                    error={!!errors.shiftNumber}
+                    helperText={errors.shiftNumber?.message}
+                    sx={{ mb: 2, mt: 2 }}
+                    disabled
+                  />
+                  <TextField
+                    label="Start Time (HH:MM, 24-hour)"
+                    fullWidth
+                    {...register("startTime")}
+                    error={!!errors.startTime}
+                    helperText={errors.startTime?.message}
+                    sx={{ mb: 2 }}
+                    disabled={isUpdating}
+                  />
+                  <TextField
+                    label="End Time (HH:MM, 24-hour)"
+                    fullWidth
+                    {...register("endTime")}
+                    error={!!errors.endTime}
+                    helperText={errors.endTime?.message}
+                    sx={{ mb: 2 }}
+                    disabled={isUpdating}
+                  />
+                  <TextField
+                    label="Fees"
+                    type="number"
+                    fullWidth
+                    {...register("fees", { valueAsNumber: true })}
+                    error={!!errors.fees}
+                    helperText={errors.fees?.message}
+                    sx={{ mb: 2 }}
+                    disabled={isUpdating}
+                  />
+                  <Typography variant="subtitle1" gutterBottom>
+                    Update Discounts
+                  </Typography>
+                  <TextField
+                    label={`All (${data?.shifts.length}) (%)`}
+                    type="number"
+                    fullWidth
+                    {...register("discountAllShifts", { valueAsNumber: true })}
+                    error={!!errors.discountAllShifts}
+                    helperText={errors.discountAllShifts?.message}
+                    sx={{ mb: 2 }}
+                    disabled={isUpdating}
+                    inputProps={{ min: 0, max: 100 }}
+                  />
+                  {data?.shifts.length >= 2 && (
+                    <TextField
+                      label="Single Selection (%)"
+                      type="number"
+                      fullWidth
+                      {...register("discountSingle", { valueAsNumber: true })}
+                      error={!!errors.discountSingle}
+                      helperText={errors.discountSingle?.message}
+                      sx={{ mb: 2 }}
+                      disabled={isUpdating}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  )}
+                  {data?.shifts.length >= 3 && (
+                    <TextField
+                      label="Double Selection (%)"
+                      type="number"
+                      fullWidth
+                      {...register("discountDouble", { valueAsNumber: true })}
+                      error={!!errors.discountDouble}
+                      helperText={errors.discountDouble?.message}
+                      sx={{ mb: 2 }}
+                      disabled={isUpdating}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  )}
+                  {data?.shifts.length === 4 && (
+                    <TextField
+                      label="Triple Selection (%)"
+                      type="number"
+                      fullWidth
+                      {...register("discountTriple", { valueAsNumber: true })}
+                      error={!!errors.discountTriple}
+                      helperText={errors.discountTriple?.message}
+                      sx={{ mb: 2 }}
+                      disabled={isUpdating}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  )}
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  onClick={() => setEditShift(null)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSubmit(onUpdateSubmit)}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <CircularProgress size={24} /> : "Update"}
                 </Button>
               </DialogActions>
             </Dialog>

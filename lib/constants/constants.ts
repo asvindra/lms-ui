@@ -8,6 +8,8 @@ export const PROTECTED_ROUTES = [
   "/configure/shifts",
   "/configure/shifts-configured",
   "/configure/seats",
+  "/configure/students/add-student",
+  "/configure/students/student-list",
 ];
 
 export const PUBLIC_ROUTES = [

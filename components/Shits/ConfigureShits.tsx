@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/context/ToastContext";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -49,19 +49,31 @@ const shiftConfigSchema = z
     path: ["hoursPerShift"],
   });
 
-// Schema for fees and discounts
-const feesAndDiscountsSchema = z.object({
-  fees: z.array(z.number().min(0, "Fees cannot be negative")),
-  provideDiscounts: z.boolean(),
-  discount2Shifts: z.number().min(0).max(100).optional(),
-  discount3Shifts: z.number().min(0).max(100).optional(),
-  discountAllShifts: z.number().min(0).max(100).optional(),
-});
+// Schema for fees and discounts (dynamic based on numShifts)
+const feesAndDiscountsSchema = (numShifts: number) =>
+  z.object({
+    fees: z
+      .array(z.number().min(0, "Fees cannot be negative"))
+      .length(numShifts),
+    provideDiscounts: z.boolean(),
+    discountAllShifts: z.number().min(0).max(100).optional(), // "All (X)"
+    ...(numShifts >= 2 && {
+      discountSingle: z.number().min(0).max(100).optional(),
+    }), // Single selection
+    ...(numShifts >= 3 && {
+      discountDouble: z.number().min(0).max(100).optional(),
+    }), // Double selection
+    ...(numShifts === 4 && {
+      discountTriple: z.number().min(0).max(100).optional(),
+    }), // Triple selection
+  });
 
 type ShiftConfigFormData = z.infer<typeof shiftConfigSchema>;
-type FeesAndDiscountsFormData = z.infer<typeof feesAndDiscountsSchema>;
+type FeesAndDiscountsFormData = z.infer<
+  ReturnType<typeof feesAndDiscountsSchema>
+>;
 
-// Utility to convert 12-hour time to 24-hour for calculations
+// Utility functions
 const convertTo24Hour = (time12h: string): string => {
   const [time, period] = time12h.split(" ");
   let [hours, minutes] = time.split(":").map(Number);
@@ -72,7 +84,6 @@ const convertTo24Hour = (time12h: string): string => {
     .padStart(2, "0")}`;
 };
 
-// Utility to convert 24-hour time back to 12-hour for display
 const convertTo12Hour = (time24h: string): string => {
   const [hours, minutes] = time24h.split(":").map(Number);
   const period = hours >= 12 ? "PM" : "AM";
@@ -89,19 +100,16 @@ export default function ConfigureShifts() {
   const [generatedShifts, setGeneratedShifts] = useState<any[]>([]);
   const [step1Data, setStep1Data] = useState<ShiftConfigFormData | null>(null);
 
-  // Check for existing shifts
   const { data: existingShiftsData, isLoading: isCheckingShifts } = useQuery({
     queryKey: ["configuredShifts"],
     queryFn: getConfiguredShifts,
     onError: (err: any) => {
-      // Ignore 404 (no shifts configured) errors, but show others
       if (err.message !== "No shifts configured") {
         toastError(err.message || "Failed to check existing shifts");
       }
     },
   });
 
-  // Step 1 Form
   const {
     register: registerStep1,
     handleSubmit: handleStep1,
@@ -115,15 +123,13 @@ export default function ConfigureShifts() {
 
   const numShifts = watchStep1("numShifts");
 
-  // Step 2 Form
   const {
     register: registerStep2,
     handleSubmit: handleStep2,
     watch: watchStep2,
-    control: controlStep2,
     formState: { errors: errorsStep2 },
   } = useForm<FeesAndDiscountsFormData>({
-    resolver: zodResolver(feesAndDiscountsSchema),
+    resolver: zodResolver(feesAndDiscountsSchema(numShifts)),
     defaultValues: { provideDiscounts: false },
   });
 
@@ -131,12 +137,11 @@ export default function ConfigureShifts() {
 
   const { mutate: configureShiftsMutation, isPending: loading } = useMutation({
     mutationFn: configureShifts,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toastSuccess("Shifts configured successfully!");
       router.push("/dashboard");
     },
     onError: (err: any) => {
-      console.log("err", err);
       toastError(err.message || "Failed to configure shifts!");
     },
   });
@@ -175,9 +180,21 @@ export default function ConfigureShifts() {
       fees: data.fees,
       discounts: data.provideDiscounts
         ? {
-            discount2Shifts: data.discount2Shifts || 0,
-            discount3Shifts: data.discount3Shifts || 0,
-            discountAllShifts: data.discountAllShifts || 0,
+            ...(data.discountAllShifts !== undefined && {
+              discountAllShifts: data.discountAllShifts,
+            }),
+            ...(numShifts >= 2 &&
+              data.discountSingle !== undefined && {
+                discountSingle: data.discountSingle,
+              }),
+            ...(numShifts >= 3 &&
+              data.discountDouble !== undefined && {
+                discountDouble: data.discountDouble,
+              }),
+            ...(numShifts === 4 &&
+              data.discountTriple !== undefined && {
+                discountTriple: data.discountTriple,
+              }),
           }
         : undefined,
     };
@@ -196,8 +213,6 @@ export default function ConfigureShifts() {
     "10:00 AM",
     "11:00 AM",
   ];
-
-  // Check if shifts are already configured
   const shiftsAlreadyConfigured = existingShiftsData?.shifts?.length > 0;
 
   return (
@@ -232,8 +247,8 @@ export default function ConfigureShifts() {
             </Box>
           ) : shiftsAlreadyConfigured ? (
             <Alert severity="info">
-              Shifts are already configured. To modify, please delete existing
-              shifts first or contact support.
+              Shifts are already configured. To modify, delete existing shifts
+              first or contact support.
             </Alert>
           ) : (
             <>
@@ -334,7 +349,7 @@ export default function ConfigureShifts() {
               ) : (
                 <Box component="form" onSubmit={handleStep2(onStep2Submit)}>
                   <Typography variant="h6" gutterBottom>
-                    Configure Fees
+                    Configure Fees and Discounts
                   </Typography>
                   {generatedShifts.map((shift, index) => (
                     <TextField
@@ -360,36 +375,8 @@ export default function ConfigureShifts() {
                   />
                   {provideDiscounts && (
                     <>
-                      {numShifts >= 2 && (
-                        <TextField
-                          label="Discount for 2 Shifts (%)"
-                          type="number"
-                          fullWidth
-                          {...registerStep2("discount2Shifts", {
-                            valueAsNumber: true,
-                          })}
-                          error={!!errorsStep2.discount2Shifts}
-                          helperText={errorsStep2.discount2Shifts?.message}
-                          sx={{ mb: 2 }}
-                          disabled={loading}
-                        />
-                      )}
-                      {numShifts >= 3 && (
-                        <TextField
-                          label="Discount for 3 Shifts (%)"
-                          type="number"
-                          fullWidth
-                          {...registerStep2("discount3Shifts", {
-                            valueAsNumber: true,
-                          })}
-                          error={!!errorsStep2.discount3Shifts}
-                          helperText={errorsStep2.discount3Shifts?.message}
-                          sx={{ mb: 2 }}
-                          disabled={loading}
-                        />
-                      )}
                       <TextField
-                        label={`Discount for All ${numShifts} Shifts (%)`}
+                        label={`All (${numShifts}) (%)`}
                         type="number"
                         fullWidth
                         {...registerStep2("discountAllShifts", {
@@ -399,7 +386,53 @@ export default function ConfigureShifts() {
                         helperText={errorsStep2.discountAllShifts?.message}
                         sx={{ mb: 2 }}
                         disabled={loading}
+                        inputProps={{ min: 0, max: 100 }}
                       />
+                      {numShifts >= 2 && (
+                        <TextField
+                          label="Single Selection (%)"
+                          type="number"
+                          fullWidth
+                          {...registerStep2("discountSingle", {
+                            valueAsNumber: true,
+                          })}
+                          error={!!errorsStep2.discountSingle}
+                          helperText={errorsStep2.discountSingle?.message}
+                          sx={{ mb: 2 }}
+                          disabled={loading}
+                          inputProps={{ min: 0, max: 100 }}
+                        />
+                      )}
+                      {numShifts >= 3 && (
+                        <TextField
+                          label="Double Selection (%)"
+                          type="number"
+                          fullWidth
+                          {...registerStep2("discountDouble", {
+                            valueAsNumber: true,
+                          })}
+                          error={!!errorsStep2.discountDouble}
+                          helperText={errorsStep2.discountDouble?.message}
+                          sx={{ mb: 2 }}
+                          disabled={loading}
+                          inputProps={{ min: 0, max: 100 }}
+                        />
+                      )}
+                      {numShifts === 4 && (
+                        <TextField
+                          label="Triple Selection (%)"
+                          type="number"
+                          fullWidth
+                          {...registerStep2("discountTriple", {
+                            valueAsNumber: true,
+                          })}
+                          error={!!errorsStep2.discountTriple}
+                          helperText={errorsStep2.discountTriple?.message}
+                          sx={{ mb: 2 }}
+                          disabled={loading}
+                          inputProps={{ min: 0, max: 100 }}
+                        />
+                      )}
                     </>
                   )}
                   <Box sx={{ display: "flex", gap: 2 }}>
