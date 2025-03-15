@@ -19,3 +19,10 @@ export const CONFIGURE_SEATS = `${BASE_ADMIN}/configure-seats`;
 export const CONFIG_SEAT = `${BASE_ADMIN}/seat-config`;
 export const UPDATE_SEAT = `${BASE_ADMIN}/update-seat`;
 export const DELETE_SEAT = `${BASE_ADMIN}/delete-seat`;
+
+//Student
+const BASE_STUDENT = `${BASE_ADMIN}/student`;
+export const GET_STUDENTS = `${BASE_STUDENT}/get-students`;
+export const ADD_STUDENT = `${BASE_STUDENT}/add-student`;
+export const UPDATE_STUDENT = `${BASE_STUDENT}/update-student`;
+export const DELETE_STUDENT = `${BASE_STUDENT}/delete-student`;
