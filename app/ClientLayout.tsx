@@ -10,42 +10,98 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import Loader from "@/components/Loader/Loader";
 import { Box, CssBaseline } from "@mui/material";
 import { StudentProvider } from "@/lib/context/StudentContext";
-import { PROTECTED_ROUTES, PUBLIC_ROUTES } from "@/lib/constants/constants";
+import {
+  PROTECTED_ROUTES,
+  PUBLIC_ROUTES,
+  STUDENT_ROUTES,
+} from "@/lib/constants/constants";
 import { ToastProvider } from "@/lib/context/ToastContext";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
+import { decodeJwt } from "jose"; // Use jose for decoding
 
-const protectedRoutes = PROTECTED_ROUTES; // e.g., ["/dashboard", "/profile"]
-const publicRoutes = PUBLIC_ROUTES; // e.g., ["/auth/login", "/auth/signup", ...]
+const protectedRoutes = PROTECTED_ROUTES; // Admin routes
+const publicRoutes = PUBLIC_ROUTES;
+const studentRoutes = STUDENT_ROUTES; // Student routes
+
+interface JwtPayload {
+  role: string;
+  exp: number;
+}
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [token, setToken] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const currentToken = localStorage.getItem("token");
     setToken(currentToken);
-    setIsLoading(false);
 
-    // If token exists and user is on a public route, redirect to dashboard
-    if (currentToken && publicRoutes.includes(pathname)) {
-      router.push("/dashboard");
-      return;
+    if (currentToken) {
+      try {
+        const decoded = decodeJwt(currentToken) as JwtPayload; // Decode token with jose
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (decoded.exp < currentTime) {
+          localStorage.removeItem("token");
+          document.cookie = "token=; path=/; max-age=0";
+          router.push("/auth/login");
+          return;
+        }
+        setRole(decoded.role);
+        console.log("Decoded role:", decoded.role);
+      } catch (err) {
+        console.error("Token decode error:", err);
+        localStorage.removeItem("token");
+        document.cookie = "token=; path=/; max-age=0";
+        router.push("/auth/login");
+        return;
+      }
     }
 
-    // If no token and user is on a protected route, redirect to login
-    if (protectedRoutes.includes(pathname) && !currentToken) {
+    setIsLoading(false);
+
+    // Redirect logic based on role and token
+    if (currentToken && role) {
+      if (publicRoutes.includes(pathname)) {
+        router.push(role === "student" ? "/student-home" : "/dashboard");
+        return;
+      }
+      if (
+        protectedRoutes.some((route) => pathname.startsWith(route)) &&
+        role !== "admin"
+      ) {
+        router.push(role === "student" ? "/student-home" : "/auth/login");
+        return;
+      }
+      if (
+        studentRoutes.some((route) => pathname.startsWith(route)) &&
+        role !== "student"
+      ) {
+        router.push(role === "admin" ? "/dashboard" : "/auth/login");
+        return;
+      }
+    } else if (
+      (protectedRoutes.some((route) => pathname.startsWith(route)) ||
+        studentRoutes.some((route) => pathname.startsWith(route))) &&
+      !currentToken
+    ) {
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(
         pathname
       )}`;
       router.push(redirectUrl);
     }
-  }, [pathname, router]);
+  }, [pathname, router, role]);
 
-  const isProtectedRoute = protectedRoutes.includes(pathname);
-  const showLayout = isProtectedRoute && !!token;
+  const isProtectedRoute =
+    protectedRoutes.some((route) => pathname.startsWith(route)) &&
+    role === "admin";
+  const isStudentRoute =
+    studentRoutes.some((route) => pathname.startsWith(route)) &&
+    role === "student";
+  const showLayout = (isProtectedRoute || isStudentRoute) && !!token;
 
   if (isLoading) {
     return <Loader />;
@@ -75,7 +131,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     overflow: "hidden",
                   }}
                 >
-                  <Sidebar />
+                  <Sidebar role={role} />
                   <Box
                     component="main"
                     sx={{
