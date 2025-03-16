@@ -9,7 +9,7 @@ import {
   updateStudent,
   getStudents,
   getConfiguredShifts,
-  getAvailableSeats, // Add this import
+  getAvailableSeats,
 } from "@/lib/api/adminApi";
 import {
   Box,
@@ -50,7 +50,7 @@ const studentSchema = z.object({
   paymentMode: z.enum(["Online", "Offline"]),
   paymentDone: z.boolean().optional(),
   shiftIds: z.array(z.string()).min(1, "Select at least one shift"),
-  seatId: z.string().optional(), // Add seatId to schema
+  seatId: z.string().optional(),
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
@@ -60,6 +60,7 @@ export default function AddStudent() {
   const searchParams = useSearchParams();
   const { success: toastSuccess, error: toastError } = useToast();
   const [editStudent, setEditStudent] = useState<any | null>(null);
+  const editId = searchParams.get("edit");
 
   // Form setup
   const {
@@ -90,10 +91,10 @@ export default function AddStudent() {
     queryFn: getConfiguredShifts,
   });
 
-  // Fetch available seats
+  // Fetch available seats (pass editId if editing)
   const { data: seatsData, isLoading: seatsLoading } = useQuery({
-    queryKey: ["availableSeats"],
-    queryFn: getAvailableSeats,
+    queryKey: ["availableSeats", editId],
+    queryFn: () => getAvailableSeats(editId || undefined),
   });
 
   // Fetch students (only for edit mode)
@@ -104,10 +105,10 @@ export default function AddStudent() {
   } = useQuery({
     queryKey: ["students"],
     queryFn: getStudents,
-    enabled: !!searchParams.get("edit"),
+    enabled: !!editId,
   });
 
-  // Check for edit mode
+  // Populate form for edit mode
   useEffect(() => {
     const editId = searchParams.get("edit");
     if (editId && studentsData?.students) {
@@ -115,6 +116,7 @@ export default function AddStudent() {
         (s: any) => s.id === editId
       );
       if (studentToEdit) {
+        console.log("Student to edit:", studentToEdit);
         setEditStudent(studentToEdit);
         setValue("email", studentToEdit.email);
         setValue("name", studentToEdit.name);
@@ -130,7 +132,7 @@ export default function AddStudent() {
           "shiftIds",
           studentToEdit.shifts.map((s: any) => s.shift_id)
         );
-        setValue("seatId", studentToEdit.seat_id || ""); // Use seat_id from students table
+        setValue("seatId", studentToEdit.seat_id || "");
       }
     }
   }, [searchParams, studentsData, setValue]);
@@ -169,9 +171,10 @@ export default function AddStudent() {
       ...data,
       joiningDate: format(data.joiningDate, "yyyy-MM-dd"),
       paymentDone: data.paymentMode === "Offline" ? data.paymentDone : false,
-      seatId: data.seatId || null, // Include seatId in payload
+      seatId: data.seatId || null,
     };
     if (editStudent) {
+      console.log("Updating student with payload:", payload);
       updateStudentMutation({ id: editStudent.id, ...payload });
     } else {
       addStudentMutation(payload);
@@ -187,7 +190,7 @@ export default function AddStudent() {
       (sum: number, shift: any) => sum + shift.fees,
       0
     );
-    const discount = shiftsData.discounts.find(
+    const discount = shiftsData.discounts?.find(
       (d: any) => d.min_shifts === shiftIds.length
     );
     return discount
@@ -226,11 +229,9 @@ export default function AddStudent() {
           </Typography>
           <Divider sx={{ mb: 3 }} />
 
-          {shiftsLoading ||
-          seatsLoading ||
-          (searchParams.get("edit") && studentsLoading) ? (
+          {shiftsLoading || seatsLoading || (editId && studentsLoading) ? (
             <CircularProgress />
-          ) : searchParams.get("edit") && !editStudent && studentsData ? (
+          ) : editId && !editStudent && studentsData ? (
             <Typography>Student not found.</Typography>
           ) : (
             <Box component="form" onSubmit={handleSubmit(onSubmit)}>
@@ -368,11 +369,22 @@ export default function AddStudent() {
                   name="seatId"
                   control={control}
                   render={({ field }) => (
-                    <Select {...field} label="Seat" error={!!errors.seatId}>
+                    <Select
+                      {...field}
+                      label="Seat"
+                      error={!!errors.seatId}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
                       <MenuItem value="">None</MenuItem>
                       {seatsData?.seats.map((seat: any) => (
                         <MenuItem key={seat.id} value={seat.id}>
                           Seat {seat.seat_number}
+                          {seat.reserved_by && seat.reserved_by === editId
+                            ? " (Current)"
+                            : seat.reserved_by
+                            ? " (Reserved)"
+                            : ""}
                         </MenuItem>
                       ))}
                     </Select>

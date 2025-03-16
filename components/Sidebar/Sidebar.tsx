@@ -9,6 +9,7 @@ import {
   ListItemText,
   Divider,
   IconButton,
+  Collapse,
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -17,12 +18,18 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
+import GroupIcon from "@mui/icons-material/Group"; // For students
+import EventSeatIcon from "@mui/icons-material/EventSeat"; // For seats
+import ScheduleIcon from "@mui/icons-material/Schedule"; // For shifts
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 
 const Sidebar = () => {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false); // State for Configuration submenu
   const fullWidth = 240;
   const collapsedWidth = 80;
 
@@ -31,8 +38,26 @@ const Sidebar = () => {
     { text: "Profile", path: "/profile", icon: <PersonIcon /> },
     {
       text: "Configuration",
-      path: "/configure/shifts",
       icon: <SettingsIcon />,
+      subItems: [
+        { text: "Shifts", path: "/configure/shifts", icon: <ScheduleIcon /> },
+        {
+          text: "Configured Shifts",
+          path: "/configure/shifts-configured",
+          icon: <ScheduleIcon />,
+        },
+        { text: "Seats", path: "/configure/seats", icon: <EventSeatIcon /> },
+        {
+          text: "Add Student",
+          path: "/configure/students/add-student",
+          icon: <GroupIcon />,
+        },
+        {
+          text: "Student List",
+          path: "/configure/students/student-list",
+          icon: <GroupIcon />,
+        },
+      ],
     },
     { text: "Analytics", path: "/analytics", icon: <AnalyticsIcon /> },
   ];
@@ -42,6 +67,12 @@ const Sidebar = () => {
     console.log(
       `[Sidebar] Toggled to ${!collapsed ? "collapsed" : "expanded"}`
     );
+  };
+
+  const handleConfigToggle = () => {
+    if (!collapsed) {
+      setConfigOpen(!configOpen);
+    }
   };
 
   return (
@@ -63,38 +94,88 @@ const Sidebar = () => {
       >
         <List sx={{ pt: 2 }}>
           {menuItems.map((item) => (
-            <ListItem
-              key={item.text}
-              disablePadding
-              sx={{
-                "&:hover": {
-                  backgroundColor: "#1976d2",
-                  "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
-                    color: "#fff",
-                  },
-                },
-              }}
-            >
-              <ListItemButton
-                onClick={() => router.push(item.path)}
+            <Box key={item.text}>
+              <ListItem
+                disablePadding
                 sx={{
-                  py: 1.5,
-                  justifyContent: collapsed ? "center" : "flex-start",
+                  "&:hover": {
+                    backgroundColor: "#1976d2",
+                    "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
+                      color: "#fff",
+                    },
+                  },
                 }}
               >
-                <ListItemIcon
-                  sx={{ color: "#1976d2", minWidth: collapsed ? 0 : 56 }}
+                <ListItemButton
+                  onClick={() =>
+                    item.subItems
+                      ? handleConfigToggle()
+                      : router.push(item.path!)
+                  }
+                  sx={{
+                    py: 1.5,
+                    justifyContent: collapsed ? "center" : "flex-start",
+                  }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText
-                    primary={item.text}
-                    sx={{ color: "#424242", ml: 1 }}
-                  />
-                )}
-              </ListItemButton>
-            </ListItem>
+                  <ListItemIcon
+                    sx={{ color: "#1976d2", minWidth: collapsed ? 0 : 56 }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <ListItemText
+                      primary={item.text}
+                      sx={{ color: "#424242", ml: 1 }}
+                    />
+                  )}
+                  {!collapsed &&
+                    item.subItems &&
+                    (configOpen ? <ExpandLess /> : <ExpandMore />)}
+                </ListItemButton>
+              </ListItem>
+              {item.subItems && (
+                <Collapse
+                  in={configOpen && !collapsed}
+                  timeout="auto"
+                  unmountOnExit
+                >
+                  <List component="div" disablePadding>
+                    {item.subItems.map((subItem) => (
+                      <ListItem
+                        key={subItem.text}
+                        disablePadding
+                        sx={{
+                          pl: 4, // Indent subitems
+                          "&:hover": {
+                            backgroundColor: "#1976d2",
+                            "& .MuiListItemIcon-root, & .MuiListItemText-primary":
+                              {
+                                color: "#fff",
+                              },
+                          },
+                        }}
+                      >
+                        <ListItemButton
+                          onClick={() => router.push(subItem.path)}
+                          sx={{
+                            py: 1,
+                            justifyContent: "flex-start",
+                          }}
+                        >
+                          <ListItemIcon sx={{ color: "#1976d2", minWidth: 56 }}>
+                            {subItem.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={subItem.text}
+                            sx={{ color: "#424242" }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              )}
+            </Box>
           ))}
         </List>
         <Divider />
@@ -103,9 +184,9 @@ const Sidebar = () => {
         onClick={handleToggle}
         sx={{
           position: "fixed",
-          top: "80px", // Below Header, slightly offset
-          left: collapsed ? "60px" : "220px", // Adjusts with Sidebar width
-          zIndex: 1200, // Above Sidebar, below Header
+          top: "80px",
+          left: collapsed ? "60px" : "220px",
+          zIndex: 1200,
           color: "#1976d2",
           bgcolor: "#ffffff",
           boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",

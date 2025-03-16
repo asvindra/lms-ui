@@ -41,6 +41,7 @@ import {
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -68,6 +69,7 @@ export default function ConfigureSeats() {
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [allocateStudentId, setAllocateStudentId] = useState<string>("");
+  const [addSeatsDialogOpen, setAddSeatsDialogOpen] = useState(false); // New state for add seats dialog
 
   // Fetch seat configuration
   const {
@@ -91,9 +93,10 @@ export default function ConfigureSeats() {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<SeatConfigFormData>({
     resolver: zodResolver(seatConfigSchema),
-    defaultValues: { numSeats: 20 },
+    defaultValues: { numSeats: 1 }, // Changed default to 1 for adding seats
   });
 
   // Mutations
@@ -101,8 +104,10 @@ export default function ConfigureSeats() {
     useMutation({
       mutationFn: configureSeats,
       onSuccess: () => {
-        toastSuccess("Seats configured successfully!");
+        toastSuccess("Seats added successfully!");
         refetch();
+        setAddSeatsDialogOpen(false);
+        reset();
       },
       onError: (err: any) => {
         toastError(err.response?.data?.error || "Failed to configure seats");
@@ -180,6 +185,11 @@ export default function ConfigureSeats() {
     setAllocateStudentId("");
   };
 
+  const handleAddSeatsDialogClose = () => {
+    setAddSeatsDialogOpen(false);
+    reset();
+  };
+
   const handleAllocateSeat = () => {
     if (selectedSeat && allocateStudentId) {
       allocateSeatMutation({
@@ -228,15 +238,33 @@ export default function ConfigureSeats() {
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
           }}
         >
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-            color="primary"
-            gutterBottom
-            sx={{ textAlign: "center", mb: 2 }}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
           >
-            Seat Configuration
-          </Typography>
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              color="primary"
+              gutterBottom
+              sx={{ textAlign: "center" }}
+            >
+              Seat Configuration
+            </Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => setAddSeatsDialogOpen(true)}
+              disabled={isPending}
+            >
+              Add Seats
+            </Button>
+          </Box>
           <Divider sx={{ mb: 3, bgcolor: "grey.300" }} />
 
           {seatsLoading || studentsLoading ? (
@@ -249,130 +277,72 @@ export default function ConfigureSeats() {
             </Alert>
           ) : (
             <>
-              {/* Seat Configuration Form */}
-              {!seatData || seatData.seats.length === 0 ? (
-                <Card sx={{ bgcolor: "grey.50", borderRadius: 2, p: 2, mb: 3 }}>
-                  <CardContent>
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      Configure the number of seats (default: 20).
-                    </Typography>
-                    <Box
-                      component="form"
-                      onSubmit={handleSubmit(onConfigureSubmit)}
-                      sx={{ mt: 2 }}
-                    >
-                      <TextField
-                        label="Number of Seats"
-                        type="number"
-                        fullWidth
-                        {...register("numSeats", { valueAsNumber: true })}
-                        error={!!errors.numSeats}
-                        helperText={errors.numSeats?.message}
-                        disabled={isPending}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <EventSeatIcon color="action" />
-                            </InputAdornment>
-                          ),
-                          inputProps: { min: 1, max: 100 },
-                        }}
-                        sx={{
-                          mb: 3,
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: "8px",
-                            "&:hover fieldset": { borderColor: "primary.main" },
-                          },
-                        }}
-                      />
-                      <CardActions sx={{ justifyContent: "flex-end" }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          type="submit"
-                          disabled={isPending}
-                          sx={{ borderRadius: "20px", px: 3 }}
+              {/* Seat Management Grid */}
+              {seatData && seatData.seats.length > 0 ? (
+                <Grid container spacing={2} justifyContent="center">
+                  {seatData.seats.map((seat: Seat) => {
+                    const student = studentsData?.students.find(
+                      (s: any) => s.id === seat.reserved_by
+                    );
+                    return (
+                      <Grid item key={seat.id}>
+                        <Tooltip
+                          title={
+                            seat.reserved_by
+                              ? `Reserved by ${
+                                  student?.name || seat.reserved_by
+                                }, Shifts: ${
+                                  seat.student_shift_numbers.join(", ") ||
+                                  "None"
+                                }`
+                              : "Available"
+                          }
+                          arrow
+                          placement="top"
                         >
-                          {isConfiguring ? (
-                            <CircularProgress size={24} />
-                          ) : (
-                            "Configure"
-                          )}
-                        </Button>
-                      </CardActions>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  {/* Seat Management Grid */}
-                  <Grid container spacing={2} justifyContent="center">
-                    {seatData.seats.map((seat: Seat) => {
-                      const student = studentsData?.students.find(
-                        (s: any) => s.id === seat.reserved_by
-                      );
-                      return (
-                        <Grid item key={seat.id}>
-                          <Tooltip
-                            title={
-                              seat.reserved_by
-                                ? `Reserved by ${
-                                    student?.name || seat.reserved_by
-                                  }, Shifts: ${
-                                    seat.student_shift_numbers.join(", ") ||
-                                    "None"
-                                  }`
-                                : "Available"
-                            }
-                            arrow
-                            placement="top"
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                cursor: "pointer",
-                                p: 1,
-                                borderRadius: 2,
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              p: 1,
+                              borderRadius: 2,
+                              bgcolor: seat.reserved_by
+                                ? "grey.300"
+                                : "primary.light",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
                                 bgcolor: seat.reserved_by
-                                  ? "grey.300"
-                                  : "primary.light",
-                                transition: "all 0.3s ease",
-                                "&:hover": {
-                                  bgcolor: seat.reserved_by
-                                    ? "grey.400"
-                                    : "primary.main",
-                                  transform: "scale(1.1)",
-                                },
+                                  ? "grey.400"
+                                  : "primary.main",
+                                transform: "scale(1.1)",
+                              },
+                            }}
+                            onClick={() => handleSeatClick(seat)}
+                          >
+                            <EventSeatIcon
+                              sx={{
+                                fontSize: 40,
+                                color: seat.reserved_by ? "grey.700" : "white",
                               }}
-                              onClick={() => handleSeatClick(seat)}
+                            />
+                            <Typography
+                              variant="caption"
+                              color={seat.reserved_by ? "grey.700" : "white"}
                             >
-                              <EventSeatIcon
-                                sx={{
-                                  fontSize: 40,
-                                  color: seat.reserved_by
-                                    ? "grey.700"
-                                    : "white",
-                                }}
-                              />
-                              <Typography
-                                variant="caption"
-                                color={seat.reserved_by ? "grey.700" : "white"}
-                              >
-                                Seat {seat.seat_number}
-                              </Typography>
-                            </Box>
-                          </Tooltip>
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                </>
+                              Seat {seat.seat_number}
+                            </Typography>
+                          </Box>
+                        </Tooltip>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              ) : (
+                <Typography>
+                  No seats configured yet. Add seats to begin.
+                </Typography>
               )}
 
               {/* Dialog for seat actions */}
@@ -402,7 +372,7 @@ export default function ConfigureSeats() {
                         >
                           <MenuItem value="">Select Student</MenuItem>
                           {studentsData?.students
-                            .filter((s: any) => !s.seat_id) // Only show students without seats
+                            .filter((s: any) => !s.seat_id)
                             .map((student: any) => (
                               <MenuItem key={student.id} value={student.id}>
                                 {student.name} ({student.email})
@@ -463,6 +433,75 @@ export default function ConfigureSeats() {
                     )}
                   </Button>
                 </DialogActions>
+              </Dialog>
+
+              {/* Dialog for adding seats */}
+              <Dialog
+                open={addSeatsDialogOpen}
+                onClose={handleAddSeatsDialogClose}
+              >
+                <DialogTitle>Add New Seats</DialogTitle>
+                <DialogContent>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    Specify the number of additional seats to add (1-100).
+                  </Typography>
+                  <Box
+                    component="form"
+                    onSubmit={handleSubmit(onConfigureSubmit)}
+                    sx={{ mt: 1 }}
+                  >
+                    <TextField
+                      label="Number of Seats"
+                      type="number"
+                      fullWidth
+                      {...register("numSeats", { valueAsNumber: true })}
+                      error={!!errors.numSeats}
+                      helperText={errors.numSeats?.message}
+                      disabled={isPending}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EventSeatIcon color="action" />
+                          </InputAdornment>
+                        ),
+                        inputProps: { min: 1, max: 100 },
+                      }}
+                      sx={{
+                        mb: 3,
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: "8px",
+                          "&:hover fieldset": { borderColor: "primary.main" },
+                        },
+                      }}
+                    />
+                    <DialogActions>
+                      <Button
+                        onClick={handleAddSeatsDialogClose}
+                        color="secondary"
+                        disabled={isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        type="submit"
+                        disabled={isPending}
+                        sx={{ borderRadius: "20px", px: 3 }}
+                      >
+                        {isConfiguring ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          "Add Seats"
+                        )}
+                      </Button>
+                    </DialogActions>
+                  </Box>
+                </DialogContent>
               </Dialog>
             </>
           )}

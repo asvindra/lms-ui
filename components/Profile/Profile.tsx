@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -11,8 +11,12 @@ import {
   IconButton,
   Card,
   CardContent,
+  CircularProgress,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/lib/context/ToastContext";
+import { getAdminProfile, updateAdminProfile } from "@/lib/api/adminApi";
 
 export default function ProfilePage() {
   const [user, setUser] = useState({
@@ -22,29 +26,38 @@ export default function ProfilePage() {
     profileImage: "",
     mobileNo: "",
   });
-  const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const mockUser = {
-          name: "John Doe",
-          businessName: "Doe Enterprises",
-          email: "john.doe@example.com",
-          profileImage: "https://via.placeholder.com/150",
-          mobileNo: "+1-555-123-4567",
-        };
-        setUser(mockUser);
-      } catch (error) {
-        console.error("[Profile] Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserData();
-  }, []);
+  const { success: toastSuccess, error: toastError } = useToast(); // Use your ToastContext
+  const queryClient = useQueryClient();
+
+  // Fetch profile using useQuery
+  const {
+    data: adminData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["adminProfile"],
+    queryFn: getAdminProfile,
+  });
+
+  // Update profile using useMutation
+  const mutation = useMutation({
+    mutationFn: updateAdminProfile,
+    onSuccess: (updatedAdmin) => {
+      // Update the query cache
+      queryClient.setQueryData(["adminProfile"], updatedAdmin);
+      setImageFile(null);
+      setEditMode(false);
+      toastSuccess("Profile updated successfully!"); // Show success toast
+      refetch(); // Refresh the data
+    },
+    onError: (err: any) => {
+      toastError(err.message || "Failed to update profile"); // Show error toast
+    },
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -59,22 +72,40 @@ export default function ProfilePage() {
   };
 
   const handleSave = () => {
-    setLoading(true);
-    setTimeout(() => {
-      console.log("[Profile] Updated user:", {
-        name: user.name,
-        businessName: user.businessName,
-        profileImage: imageFile ? "File to upload" : user.profileImage,
-        mobileNo: user.mobileNo,
-      });
-      setImageFile(null);
-      setEditMode(false);
-      setLoading(false);
-    }, 1000);
+    const formData = new FormData();
+    formData.append("name", user.name);
+    formData.append("businessName", user.businessName);
+    formData.append("mobileNo", user.mobileNo);
+    if (imageFile) {
+      formData.append("profilePhoto", imageFile);
+    }
+
+    mutation.mutate(formData); // Trigger the mutation
   };
 
-  if (loading) {
-    return null;
+  useEffect(() => {
+    if (isError) {
+      toastError("Failed to get profile details");
+    } else {
+      if (adminData) {
+        console.log("admin", adminData);
+        const { admin } = adminData;
+        setUser({
+          name: admin.name || "",
+          businessName: admin.business_name || "",
+          email: admin.email || "",
+          profileImage: admin.profile_photo || "",
+          mobileNo: admin.mobile_no || "",
+        });
+      }
+    }
+  }, [isError, adminData, isLoading]);
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -106,7 +137,6 @@ export default function ProfilePage() {
           </Typography>
 
           <Grid container spacing={2} alignItems="center">
-            {/* Profile Image */}
             <Grid item xs={12} sm={4} sx={{ textAlign: "center" }}>
               <Box sx={{ position: "relative", display: "inline-block" }}>
                 <Avatar
@@ -144,7 +174,6 @@ export default function ProfilePage() {
               </Box>
             </Grid>
 
-            {/* Form Fields */}
             <Grid item xs={12} sm={8}>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
@@ -232,7 +261,6 @@ export default function ProfilePage() {
               </Grid>
             </Grid>
 
-            {/* Buttons */}
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
                 {!editMode ? (
@@ -256,6 +284,7 @@ export default function ProfilePage() {
                     <Button
                       variant="outlined"
                       onClick={() => setEditMode(false)}
+                      disabled={mutation.isPending}
                       sx={{
                         color: "#1976d2",
                         borderColor: "#1976d2",
@@ -274,6 +303,7 @@ export default function ProfilePage() {
                     <Button
                       variant="contained"
                       onClick={handleSave}
+                      disabled={mutation.isPending}
                       sx={{
                         bgcolor: "#1976d2",
                         "&:hover": { bgcolor: "#1565c0" },
@@ -284,7 +314,11 @@ export default function ProfilePage() {
                         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
                       }}
                     >
-                      Save
+                      {mutation.isPending ? (
+                        <CircularProgress size={24} color="inherit" />
+                      ) : (
+                        "Save"
+                      )}
                     </Button>
                   </>
                 )}
