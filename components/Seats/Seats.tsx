@@ -7,8 +7,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   configureSeats,
   getSeatConfig,
-  updateSeatConfig,
+  allocateSeat,
+  deallocateSeat,
   deleteSeat,
+  getStudents,
 } from "@/lib/api/adminApi";
 import {
   Box,
@@ -31,6 +33,10 @@ import {
   CardContent,
   CardActions,
   InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -53,8 +59,7 @@ interface Seat {
   id: string;
   seat_number: number;
   reserved_by?: string; // Student ID
-  shift_id?: string; // Shift ID
-  shift_number?: number; // Populated on frontend
+  student_shift_numbers: number[]; // Shifts assigned to the student
 }
 
 export default function ConfigureSeats() {
@@ -62,11 +67,23 @@ export default function ConfigureSeats() {
   const { success: toastSuccess, error: toastError } = useToast();
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [allocateStudentId, setAllocateStudentId] = useState<string>("");
 
   // Fetch seat configuration
-  const { data, isLoading, error, refetch } = useQuery({
+  const {
+    data: seatData,
+    isLoading: seatsLoading,
+    error: seatsError,
+    refetch,
+  } = useQuery({
     queryKey: ["seatConfig"],
     queryFn: getSeatConfig,
+  });
+
+  // Fetch students
+  const { data: studentsData, isLoading: studentsLoading } = useQuery({
+    queryKey: ["students"],
+    queryFn: getStudents,
   });
 
   // Form setup for configuring seats
@@ -79,7 +96,7 @@ export default function ConfigureSeats() {
     defaultValues: { numSeats: 20 },
   });
 
-  // Mutation to configure seats
+  // Mutations
   const { mutate: configureSeatsMutation, isPending: isConfiguring } =
     useMutation({
       mutationFn: configureSeats,
@@ -88,25 +105,47 @@ export default function ConfigureSeats() {
         refetch();
       },
       onError: (err: any) => {
-        toastError(err.response.data.error || "Failed to configure seats");
+        toastError(err.response?.data?.error || "Failed to configure seats");
       },
     });
 
-  // Mutation to update seat (remove reservation)
-  const { mutate: updateSeatMutation, isPending: isUpdating } = useMutation({
-    mutationFn: ({ seatId }: { seatId: string }) => updateSeatConfig(seatId),
-    onSuccess: () => {
-      toastSuccess("Seat reservation removed successfully!");
-      refetch();
-      setDialogOpen(false);
-      setSelectedSeat(null);
-    },
-    onError: (err: any) => {
-      toastError(err.message || "Failed to update seat");
-    },
-  });
+  const { mutate: allocateSeatMutation, isPending: isAllocating } = useMutation(
+    {
+      mutationFn: ({
+        seatId,
+        studentId,
+      }: {
+        seatId: string;
+        studentId: string;
+      }) => allocateSeat({ seatId, studentId }),
+      onSuccess: () => {
+        toastSuccess("Seat allocated successfully!");
+        refetch();
+        setDialogOpen(false);
+        setSelectedSeat(null);
+        setAllocateStudentId("");
+      },
+      onError: (err: any) => {
+        toastError(err.response?.data?.error || "Failed to allocate seat");
+      },
+    }
+  );
 
-  // Mutation to delete seat
+  const { mutate: deallocateSeatMutation, isPending: isDeallocating } =
+    useMutation({
+      mutationFn: ({ studentId }: { studentId: string }) =>
+        deallocateSeat({ studentId }),
+      onSuccess: () => {
+        toastSuccess("Seat deallocated successfully!");
+        refetch();
+        setDialogOpen(false);
+        setSelectedSeat(null);
+      },
+      onError: (err: any) => {
+        toastError(err.response?.data?.error || "Failed to deallocate seat");
+      },
+    });
+
   const { mutate: deleteSeatMutation, isPending: isDeleting } = useMutation({
     mutationFn: ({ seatId }: { seatId: string }) => deleteSeat(seatId),
     onSuccess: () => {
@@ -116,15 +155,15 @@ export default function ConfigureSeats() {
       setSelectedSeat(null);
     },
     onError: (err: any) => {
-      toastError(err.response.data.error || "Failed to delete seat");
+      toastError(err.response?.data?.error || "Failed to delete seat");
     },
   });
 
   useEffect(() => {
-    if (error) {
-      toastError(error.message || "Failed to fetch seat configuration");
+    if (seatsError) {
+      toastError(seatsError.message || "Failed to fetch seat configuration");
     }
-  }, [error, toastError]);
+  }, [seatsError, toastError]);
 
   const onConfigureSubmit = (data: SeatConfigFormData) => {
     configureSeatsMutation(data);
@@ -138,11 +177,21 @@ export default function ConfigureSeats() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedSeat(null);
+    setAllocateStudentId("");
   };
 
-  const handleRemoveReservation = () => {
-    if (selectedSeat) {
-      updateSeatMutation({ seatId: selectedSeat.id });
+  const handleAllocateSeat = () => {
+    if (selectedSeat && allocateStudentId) {
+      allocateSeatMutation({
+        seatId: selectedSeat.id,
+        studentId: allocateStudentId,
+      });
+    }
+  };
+
+  const handleDeallocateSeat = () => {
+    if (selectedSeat && selectedSeat.reserved_by) {
+      deallocateSeatMutation({ studentId: selectedSeat.reserved_by });
     }
   };
 
@@ -152,7 +201,8 @@ export default function ConfigureSeats() {
     }
   };
 
-  const isPending = isConfiguring || isUpdating || isDeleting;
+  const isPending =
+    isConfiguring || isAllocating || isDeallocating || isDeleting;
 
   return (
     <Box
@@ -189,18 +239,18 @@ export default function ConfigureSeats() {
           </Typography>
           <Divider sx={{ mb: 3, bgcolor: "grey.300" }} />
 
-          {isLoading ? (
+          {seatsLoading || studentsLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center" }}>
               <CircularProgress />
             </Box>
-          ) : error ? (
+          ) : seatsError ? (
             <Alert severity="error">
-              {error.message || "Failed to load seats"}
+              {seatsError.message || "Failed to load seats"}
             </Alert>
           ) : (
             <>
               {/* Seat Configuration Form */}
-              {!data || data.seats.length === 0 ? (
+              {!seatData || seatData.seats.length === 0 ? (
                 <Card sx={{ bgcolor: "grey.50", borderRadius: 2, p: 2, mb: 3 }}>
                   <CardContent>
                     <Typography
@@ -261,54 +311,66 @@ export default function ConfigureSeats() {
                 <>
                   {/* Seat Management Grid */}
                   <Grid container spacing={2} justifyContent="center">
-                    {data.seats.map((seat: Seat) => (
-                      <Grid item key={seat.id}>
-                        <Tooltip
-                          title={
-                            seat.reserved_by
-                              ? `Reserved by Student ${seat.reserved_by} for Shift ${seat.shift_number}`
-                              : "Available"
-                          }
-                          arrow
-                          placement="top"
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              cursor: "pointer",
-                              p: 1,
-                              borderRadius: 2,
-                              bgcolor: seat.reserved_by
-                                ? "grey.300"
-                                : "primary.light",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                bgcolor: seat.reserved_by
-                                  ? "grey.400"
-                                  : "primary.main",
-                                transform: "scale(1.1)",
-                              },
-                            }}
-                            onClick={() => handleSeatClick(seat)}
+                    {seatData.seats.map((seat: Seat) => {
+                      const student = studentsData?.students.find(
+                        (s: any) => s.id === seat.reserved_by
+                      );
+                      return (
+                        <Grid item key={seat.id}>
+                          <Tooltip
+                            title={
+                              seat.reserved_by
+                                ? `Reserved by ${
+                                    student?.name || seat.reserved_by
+                                  }, Shifts: ${
+                                    seat.student_shift_numbers.join(", ") ||
+                                    "None"
+                                  }`
+                                : "Available"
+                            }
+                            arrow
+                            placement="top"
                           >
-                            <EventSeatIcon
+                            <Box
                               sx={{
-                                fontSize: 40,
-                                color: seat.reserved_by ? "grey.700" : "white",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                cursor: "pointer",
+                                p: 1,
+                                borderRadius: 2,
+                                bgcolor: seat.reserved_by
+                                  ? "grey.300"
+                                  : "primary.light",
+                                transition: "all 0.3s ease",
+                                "&:hover": {
+                                  bgcolor: seat.reserved_by
+                                    ? "grey.400"
+                                    : "primary.main",
+                                  transform: "scale(1.1)",
+                                },
                               }}
-                            />
-                            <Typography
-                              variant="caption"
-                              color={seat.reserved_by ? "grey.700" : "white"}
+                              onClick={() => handleSeatClick(seat)}
                             >
-                              Seat {seat.seat_number}
-                            </Typography>
-                          </Box>
-                        </Tooltip>
-                      </Grid>
-                    ))}
+                              <EventSeatIcon
+                                sx={{
+                                  fontSize: 40,
+                                  color: seat.reserved_by
+                                    ? "grey.700"
+                                    : "white",
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                color={seat.reserved_by ? "grey.700" : "white"}
+                              >
+                                Seat {seat.seat_number}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                 </>
               )}
@@ -321,11 +383,34 @@ export default function ConfigureSeats() {
                 <DialogContent>
                   {selectedSeat?.reserved_by ? (
                     <Typography>
-                      Reserved by Student {selectedSeat.reserved_by} for Shift{" "}
-                      {selectedSeat.shift_number}
+                      Reserved by{" "}
+                      {studentsData?.students.find(
+                        (s: any) => s.id === selectedSeat.reserved_by
+                      )?.name || selectedSeat.reserved_by}
+                      , Shifts:{" "}
+                      {selectedSeat.student_shift_numbers.join(", ") || "None"}
                     </Typography>
                   ) : (
-                    <Typography>This seat is available.</Typography>
+                    <>
+                      <Typography>This seat is available.</Typography>
+                      <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>Student</InputLabel>
+                        <Select
+                          value={allocateStudentId}
+                          onChange={(e) => setAllocateStudentId(e.target.value)}
+                          label="Student"
+                        >
+                          <MenuItem value="">Select Student</MenuItem>
+                          {studentsData?.students
+                            .filter((s: any) => !s.seat_id) // Only show students without seats
+                            .map((student: any) => (
+                              <MenuItem key={student.id} value={student.id}>
+                                {student.name} ({student.email})
+                              </MenuItem>
+                            ))}
+                        </Select>
+                      </FormControl>
+                    </>
                   )}
                 </DialogContent>
                 <DialogActions>
@@ -336,17 +421,30 @@ export default function ConfigureSeats() {
                   >
                     Cancel
                   </Button>
-                  {selectedSeat?.reserved_by && (
+                  {selectedSeat?.reserved_by ? (
                     <Button
-                      onClick={handleRemoveReservation}
+                      onClick={handleDeallocateSeat}
                       color="warning"
                       disabled={isPending}
                       startIcon={<EditIcon />}
                     >
-                      {isUpdating ? (
+                      {isDeallocating ? (
                         <CircularProgress size={20} />
                       ) : (
-                        "Remove Reservation"
+                        "Deallocate"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleAllocateSeat}
+                      color="primary"
+                      disabled={isPending || !allocateStudentId}
+                      startIcon={<EditIcon />}
+                    >
+                      {isAllocating ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        "Allocate"
                       )}
                     </Button>
                   )}
