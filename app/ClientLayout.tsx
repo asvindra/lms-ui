@@ -18,7 +18,8 @@ import {
 import { ToastProvider } from "@/lib/context/ToastContext";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
-import { decodeJwt } from "jose"; // Use jose for decoding
+import { decodeJwt } from "jose";
+import { getAdminProfile } from "@/lib/api/adminApi";
 
 const protectedRoutes = PROTECTED_ROUTES; // Admin routes
 const publicRoutes = PUBLIC_ROUTES;
@@ -34,6 +35,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [token, setToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     if (currentToken) {
       try {
-        const decoded = decodeJwt(currentToken) as JwtPayload; // Decode token with jose
+        const decoded = decodeJwt(currentToken) as JwtPayload;
         const currentTime = Math.floor(Date.now() / 1000);
         if (decoded.exp < currentTime) {
           localStorage.removeItem("token");
@@ -52,6 +54,25 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         }
         setRole(decoded.role);
         console.log("Decoded role:", decoded.role);
+
+        // Fetch profile image based on role
+        if (decoded.role === "admin") {
+          getAdminProfile()
+            .then((data: any) => {
+              console.log("data", data);
+              const { admin } = data;
+
+              if (admin.profile_photo) {
+                setProfileImage(admin.profile_photo);
+                localStorage.setItem("profileImage", admin.profile_photo); // Optional caching
+              }
+            })
+            .catch((err: any) => {
+              console.error("Failed to fetch admin profile:", err);
+            });
+        }
+        // For students, you might need a similar API (e.g., getStudentProfile)
+        // else if (decoded.role === "student") { ... }
       } catch (err) {
         console.error("Token decode error:", err);
         localStorage.removeItem("token");
@@ -123,7 +144,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                   bgcolor: "grey.100",
                 }}
               >
-                <Header />
+                <Header profileImage={profileImage} role={role} />
                 <Box
                   sx={{
                     display: "flex",
