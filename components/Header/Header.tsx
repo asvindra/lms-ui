@@ -1,18 +1,33 @@
 "use client";
 
-import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Avatar,
+} from "@mui/material";
 import { useRouter } from "next/navigation";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
-export default function Header() {
+interface HeaderProps {
+  profileImage?: string | null;
+  role?: string | null;
+}
+
+export default function Header({ profileImage, role }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("profileImage"); // Clear cached image
     document.cookie = "token=; path=/; max-age=0"; // Clear cookie
     router.push("/auth/login");
   };
+
+  console.log("profileImage", profileImage);
 
   return (
     <AppBar
@@ -28,16 +43,28 @@ export default function Header() {
           variant="h6"
           sx={{ flexGrow: 1, fontWeight: "bold", letterSpacing: 1 }}
         >
-          Admin Dashboard
+          {role === "student" ? "Student Dashboard" : "Admin Dashboard"}
         </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             color="inherit"
-            startIcon={<AccountCircleIcon />}
-            onClick={() => router.push("/profile")}
+            startIcon={
+              profileImage ? (
+                <Avatar
+                  src={profileImage}
+                  alt="Profile"
+                  sx={{ width: 24, height: 24 }}
+                />
+              ) : (
+                <AccountCircleIcon />
+              )
+            }
+            onClick={() =>
+              router.push(role === "student" ? "/student-home" : "/profile")
+            }
             sx={{ textTransform: "none", px: 2 }}
           >
-            Profile
+            {role === "student" ? "Home" : "Profile"}
           </Button>
           <Button
             color="inherit"
