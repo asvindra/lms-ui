@@ -25,15 +25,23 @@ import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import SchoolIcon from "@mui/icons-material/School"; // For courses
+import AssignmentIcon from "@mui/icons-material/Assignment"; // For assignments
+import GradeIcon from "@mui/icons-material/Grade"; // For grades
 
-const Sidebar = () => {
+interface SidebarProps {
+  role: string | null; // "admin" or "student"
+}
+
+const Sidebar = ({ role }: SidebarProps) => {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [configOpen, setConfigOpen] = useState(false); // State for Configuration submenu
   const fullWidth = 240;
   const collapsedWidth = 80;
 
-  const menuItems = [
+  // Admin menu items
+  const adminMenuItems = [
     { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { text: "Profile", path: "/profile", icon: <PersonIcon /> },
     {
@@ -60,7 +68,21 @@ const Sidebar = () => {
       ],
     },
     { text: "Analytics", path: "/analytics", icon: <AnalyticsIcon /> },
+    { text: "Students", path: "/students", icon: <GroupIcon /> },
+    { text: "Settings", path: "/settings", icon: <SettingsIcon /> },
   ];
+
+  // Student menu items
+  const studentMenuItems = [
+    { text: "Home", path: "/student-home", icon: <DashboardIcon /> },
+    { text: "Dashboard", path: "/student-dashboard", icon: <DashboardIcon /> },
+    { text: "Courses", path: "/courses", icon: <SchoolIcon /> },
+    { text: "Assignments", path: "/assignments", icon: <AssignmentIcon /> },
+    { text: "Grades", path: "/grades", icon: <GradeIcon /> },
+  ];
+
+  // Select menu items based on role
+  const menuItems = role === "student" ? studentMenuItems : adminMenuItems;
 
   const handleToggle = () => {
     setCollapsed(!collapsed);
@@ -93,7 +115,7 @@ const Sidebar = () => {
         }}
       >
         <List sx={{ pt: 2 }}>
-          {menuItems.map((item) => (
+          {menuItems.map((item: any) => (
             <Box key={item.text}>
               <ListItem
                 disablePadding
@@ -140,7 +162,7 @@ const Sidebar = () => {
                   unmountOnExit
                 >
                   <List component="div" disablePadding>
-                    {item.subItems.map((subItem) => (
+                    {item.subItems.map((subItem: any) => (
                       <ListItem
                         key={subItem.text}
                         disablePadding

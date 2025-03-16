@@ -1,3 +1,13 @@
+export const PUBLIC_ROUTES = [
+  "/",
+  "/auth/login",
+  "/auth/signup",
+  "/auth/verify",
+  "/auth/forgot-password",
+  "/auth/confirm-password",
+];
+
+// Admin-specific protected routes
 export const PROTECTED_ROUTES = [
   "/dashboard",
   "/profile",
@@ -12,11 +22,11 @@ export const PROTECTED_ROUTES = [
   "/configure/students/student-list",
 ];
 
-export const PUBLIC_ROUTES = [
-  "/",
-  "/auth/login",
-  "/auth/signup",
-  "/auth/verify",
-  "/auth/forgot-password",
-  "/auth/confirm-password",
+// Student-specific protected routes
+export const STUDENT_ROUTES = [
+  "/student-home",
+  "/student-dashboard",
+  "/courses",
+  "/assignments",
+  "/grades",
 ];
