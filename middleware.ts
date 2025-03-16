@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("token")?.value;
 
-  console.log(`[Middleware] Pathname: ${pathname}, Token: ${token}`);
+  console.log(`rq`, request);
 
   // Allow /auth/verify with query params (e.g., /auth/verify?email=...) to proceed
   if (pathname.startsWith("/auth/verify") && request.nextUrl.search) {

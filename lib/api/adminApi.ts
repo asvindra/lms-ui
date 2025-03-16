@@ -9,9 +9,11 @@ import {
   DELETE_SHIFTS,
   DELETE_SHIFTS_BY_ID,
   DELETE_STUDENT,
+  GET_ADMIN_PROFILE,
   GET_AVAILABLE_SEATS,
   GET_STUDENTS,
   SHIFTS_CONFIGURED,
+  UPDATE_ADMIN_PROFILE,
   UPDATE_SEAT,
   UPDATE_SHIFTS,
   UPDATE_STUDENT,
@@ -106,10 +108,12 @@ export const getStudents = () =>
     return res.data;
   });
 
-export const getAvailableSeats = () =>
-  apiClient.get<any>(GET_AVAILABLE_SEATS).then((res: any) => {
-    return res.data;
-  });
+export const getAvailableSeats = (studentId?: string) =>
+  apiClient
+    .get<any>(GET_AVAILABLE_SEATS, { params: { studentId } })
+    .then((res: any) => {
+      return res.data;
+    });
 export const allocateSeat = (data: any) =>
   apiClient.post<any>(ALLOCATE_SEAT, data).then((res: any) => {
     return res.data;
@@ -117,5 +121,21 @@ export const allocateSeat = (data: any) =>
 
 export const deallocateSeat = (data: any) =>
   apiClient.post<any>(DEALLOCATE_SEAT, data).then((res: any) => {
+    return res.data;
+  });
+
+export const updateAdminProfile = (data: any) =>
+  apiClient
+    .post<any>(UPDATE_ADMIN_PROFILE, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    .then((res: any) => {
+      return res.data;
+    });
+
+export const getAdminProfile = () =>
+  apiClient.get<any>(GET_ADMIN_PROFILE).then((res: any) => {
     return res.data;
   });

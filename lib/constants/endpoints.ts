@@ -32,3 +32,8 @@ const BASE_SEAT = `${BASE_ADMIN}/seat`;
 export const GET_AVAILABLE_SEATS = `${BASE_SEAT}/get-available-seats`;
 export const ALLOCATE_SEAT = `${BASE_SEAT}/allocate-seat`;
 export const DEALLOCATE_SEAT = `${BASE_SEAT}/deallocate-seat`;
+
+//Admin profile
+const BASE_ADMIN_PROFILE = `${BASE_ADMIN}/profile`;
+export const GET_ADMIN_PROFILE = `${BASE_ADMIN_PROFILE}/details`;
+export const UPDATE_ADMIN_PROFILE = `${BASE_ADMIN_PROFILE}/update-profile`;
