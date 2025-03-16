@@ -9,6 +9,7 @@ import {
   updateStudent,
   getStudents,
   getConfiguredShifts,
+  getAvailableSeats, // Add this import
 } from "@/lib/api/adminApi";
 import {
   Box,
@@ -49,6 +50,7 @@ const studentSchema = z.object({
   paymentMode: z.enum(["Online", "Offline"]),
   paymentDone: z.boolean().optional(),
   shiftIds: z.array(z.string()).min(1, "Select at least one shift"),
+  seatId: z.string().optional(), // Add seatId to schema
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
@@ -75,6 +77,7 @@ export default function AddStudent() {
       paymentDone: false,
       shiftIds: [],
       joiningDate: null,
+      seatId: "",
     },
   });
 
@@ -85,6 +88,12 @@ export default function AddStudent() {
   const { data: shiftsData, isLoading: shiftsLoading } = useQuery({
     queryKey: ["configuredShifts"],
     queryFn: getConfiguredShifts,
+  });
+
+  // Fetch available seats
+  const { data: seatsData, isLoading: seatsLoading } = useQuery({
+    queryKey: ["availableSeats"],
+    queryFn: getAvailableSeats,
   });
 
   // Fetch students (only for edit mode)
@@ -116,11 +125,12 @@ export default function AddStudent() {
         setValue("joiningDate", new Date(studentToEdit.joining_date));
         setValue("gender", studentToEdit.gender);
         setValue("paymentMode", studentToEdit.payment_mode);
-        setValue("paymentDone", studentToEdit.payment_done); // This sets the value correctly
+        setValue("paymentDone", studentToEdit.payment_done);
         setValue(
           "shiftIds",
           studentToEdit.shifts.map((s: any) => s.shift_id)
         );
+        setValue("seatId", studentToEdit.seat_id || ""); // Use seat_id from students table
       }
     }
   }, [searchParams, studentsData, setValue]);
@@ -159,6 +169,7 @@ export default function AddStudent() {
       ...data,
       joiningDate: format(data.joiningDate, "yyyy-MM-dd"),
       paymentDone: data.paymentMode === "Offline" ? data.paymentDone : false,
+      seatId: data.seatId || null, // Include seatId in payload
     };
     if (editStudent) {
       updateStudentMutation({ id: editStudent.id, ...payload });
@@ -215,7 +226,9 @@ export default function AddStudent() {
           </Typography>
           <Divider sx={{ mb: 3 }} />
 
-          {shiftsLoading || (searchParams.get("edit") && studentsLoading) ? (
+          {shiftsLoading ||
+          seatsLoading ||
+          (searchParams.get("edit") && studentsLoading) ? (
             <CircularProgress />
           ) : searchParams.get("edit") && !editStudent && studentsData ? (
             <Typography>Student not found.</Typography>
@@ -338,7 +351,7 @@ export default function AddStudent() {
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={field.value} // Controlled by form state
+                            checked={field.value}
                             onChange={(e) => field.onChange(e.target.checked)}
                             disabled={adding || updating}
                           />
@@ -349,6 +362,28 @@ export default function AddStudent() {
                   />
                 </FormControl>
               )}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Seat</InputLabel>
+                <Controller
+                  name="seatId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} label="Seat" error={!!errors.seatId}>
+                      <MenuItem value="">None</MenuItem>
+                      {seatsData?.seats.map((seat: any) => (
+                        <MenuItem key={seat.id} value={seat.id}>
+                          Seat {seat.seat_number}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
+                {errors.seatId && (
+                  <Typography color="error" variant="caption">
+                    {errors.seatId.message}
+                  </Typography>
+                )}
+              </FormControl>
               <Typography variant="subtitle1" gutterBottom>
                 Select Shifts
               </Typography>

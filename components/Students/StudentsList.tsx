@@ -24,7 +24,6 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "../Table/Table";
-// Adjust the import path to your Table component
 
 export default function StudentList() {
   const router = useRouter();
@@ -111,6 +110,12 @@ export default function StudentList() {
       label: "Monthly Fee",
       render: (shifts: any[]) =>
         shifts.length > 0 ? `$${shifts[0].monthly_fee}` : "N/A",
+    },
+    {
+      key: "seat" as const,
+      label: "Seat Number",
+      render: (value: any) =>
+        value !== null ? value?.seat_number : "Not Assigned",
     },
     {
       key: "id" as const,

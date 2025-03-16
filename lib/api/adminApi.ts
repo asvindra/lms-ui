@@ -1,12 +1,15 @@
 import {
   ADD_STUDENT,
+  ALLOCATE_SEAT,
   CONFIGURE_SEATS,
   CONFIGURE_SHIFTS,
   CONFIG_SEAT,
+  DEALLOCATE_SEAT,
   DELETE_SEAT,
   DELETE_SHIFTS,
   DELETE_SHIFTS_BY_ID,
   DELETE_STUDENT,
+  GET_AVAILABLE_SEATS,
   GET_STUDENTS,
   SHIFTS_CONFIGURED,
   UPDATE_SEAT,
@@ -100,5 +103,19 @@ export const deleteStudent = (data: any) =>
     });
 export const getStudents = () =>
   apiClient.get<GetStudentsRequest>(GET_STUDENTS).then((res: any) => {
+    return res.data;
+  });
+
+export const getAvailableSeats = () =>
+  apiClient.get<any>(GET_AVAILABLE_SEATS).then((res: any) => {
+    return res.data;
+  });
+export const allocateSeat = (data: any) =>
+  apiClient.post<any>(ALLOCATE_SEAT, data).then((res: any) => {
+    return res.data;
+  });
+
+export const deallocateSeat = (data: any) =>
+  apiClient.post<any>(DEALLOCATE_SEAT, data).then((res: any) => {
     return res.data;
   });
