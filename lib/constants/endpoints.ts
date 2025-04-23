@@ -26,6 +26,9 @@ export const GET_STUDENTS = `${BASE_STUDENT}/get-students`;
 export const ADD_STUDENT = `${BASE_STUDENT}/add-student`;
 export const UPDATE_STUDENT = `${BASE_STUDENT}/update-student`;
 export const DELETE_STUDENT = `${BASE_STUDENT}/delete-student`;
+export const SUBSCRIPTION_DETAILS = `${BASE_STUDENT}/get-subscription`;
+export const UPDATE_PROFILE = `${BASE_STUDENT}/update-student-profile`;
+export const GET_PROFILE = `${BASE_STUDENT}/get-profile`;
 
 //seat allocation
 const BASE_SEAT = `${BASE_ADMIN}/seat`;

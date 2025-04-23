@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     } else if (role === "student") {
       console.log("Student token, redirecting to student-home");
-      return NextResponse.redirect(new URL("/student-home", request.url));
+      return NextResponse.redirect(new URL("/student", request.url));
     }
   }
 
@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
       console.log(
         "Non-admin attempting admin route, redirecting based on role"
       );
-      const redirectUrl = role === "student" ? "/student-home" : "/auth/login";
+      const redirectUrl = role === "student" ? "/student" : "/auth/login";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
   }

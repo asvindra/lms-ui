@@ -60,7 +60,7 @@ export default function Header({ profileImage, role }: HeaderProps) {
               )
             }
             onClick={() =>
-              router.push(role === "student" ? "/student-home" : "/profile")
+              router.push(role === "student" ? "/student" : "/profile")
             }
             sx={{ textTransform: "none", px: 2 }}
           >

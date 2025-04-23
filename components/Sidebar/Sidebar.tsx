@@ -70,15 +70,18 @@ const Sidebar = ({ role }: SidebarProps) => {
     { text: "Analytics", path: "/analytics", icon: <AnalyticsIcon /> },
     { text: "Students", path: "/students", icon: <GroupIcon /> },
     { text: "Settings", path: "/settings", icon: <SettingsIcon /> },
+    {
+      text: "Subscription",
+      path: "/dashboard/subscription",
+      icon: <SettingsIcon />,
+    },
   ];
 
   // Student menu items
   const studentMenuItems = [
-    { text: "Home", path: "/student-home", icon: <DashboardIcon /> },
-    { text: "Dashboard", path: "/student-dashboard", icon: <DashboardIcon /> },
-    { text: "Courses", path: "/courses", icon: <SchoolIcon /> },
-    { text: "Assignments", path: "/assignments", icon: <AssignmentIcon /> },
-    { text: "Grades", path: "/grades", icon: <GradeIcon /> },
+    { text: "Home", path: "/student", icon: <DashboardIcon /> },
+    { text: "Profile", path: "/student/profile", icon: <DashboardIcon /> },
+    // { text: "Requests", path: "/student/requests", icon: <SchoolIcon /> },
   ];
 
   // Select menu items based on role
