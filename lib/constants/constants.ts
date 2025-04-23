@@ -14,6 +14,8 @@ export const PROTECTED_ROUTES = [
   "/profile",
   "/settings",
   "/analytics",
+  "/subscriptions",
+  "/payments",
   "/students",
   "/settings/shifts",
   "/configure/shifts",

@@ -28,6 +28,7 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import SchoolIcon from "@mui/icons-material/School"; // For courses
 import AssignmentIcon from "@mui/icons-material/Assignment"; // For assignments
 import GradeIcon from "@mui/icons-material/Grade"; // For grades
+import { PaymentOutlined, PlaceOutlined } from "@mui/icons-material";
 
 interface SidebarProps {
   role: string | null; // "admin" or "student"
@@ -67,9 +68,9 @@ const Sidebar = ({ role }: SidebarProps) => {
         },
       ],
     },
-    { text: "Analytics", path: "/analytics", icon: <AnalyticsIcon /> },
+    { text: "Payments", path: "/payments", icon: <PaymentOutlined /> },
     { text: "Students", path: "/students", icon: <GroupIcon /> },
-    { text: "Settings", path: "/settings", icon: <SettingsIcon /> },
+    { text: "Plans", path: "/subscriptions", icon: <PlaceOutlined /> },
     {
       text: "Subscription",
       path: "/dashboard/subscription",
