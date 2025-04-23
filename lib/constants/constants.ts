@@ -10,6 +10,7 @@ export const PUBLIC_ROUTES = [
 // Admin-specific protected routes
 export const PROTECTED_ROUTES = [
   "/dashboard",
+  "/dashboard/requests",
   "/profile",
   "/settings",
   "/analytics",
@@ -24,9 +25,7 @@ export const PROTECTED_ROUTES = [
 
 // Student-specific protected routes
 export const STUDENT_ROUTES = [
-  "/student-home",
-  "/student-dashboard",
-  "/courses",
-  "/assignments",
-  "/grades",
+  "/student",
+  "/student/profile",
+  "/student/requests",
 ];

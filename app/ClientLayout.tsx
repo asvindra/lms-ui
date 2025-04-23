@@ -87,14 +87,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     // Redirect logic based on role and token
     if (currentToken && role) {
       if (publicRoutes.includes(pathname)) {
-        router.push(role === "student" ? "/student-home" : "/dashboard");
+        router.push(role === "student" ? "/student" : "/dashboard");
         return;
       }
       if (
         protectedRoutes.some((route) => pathname.startsWith(route)) &&
         role !== "admin"
       ) {
-        router.push(role === "student" ? "/student-home" : "/auth/login");
+        router.push(role === "student" ? "/student" : "/auth/login");
         return;
       }
       if (
@@ -123,6 +123,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     studentRoutes.some((route) => pathname.startsWith(route)) &&
     role === "student";
   const showLayout = (isProtectedRoute || isStudentRoute) && !!token;
+
+  console.log("showLayout", showLayout);
 
   if (isLoading) {
     return <Loader />;
