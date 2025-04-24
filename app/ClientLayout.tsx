@@ -44,7 +44,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
     return null;
   };
+
   useEffect(() => {
+    localStorage.removeItem("token");
+    document.cookie = "token=; path=/; max-age=0";
+    console.log("ClientLayout: Cleared tokens on load");
     console.log("ClientLayout: Current pathname:", pathname);
     console.log("ClientLayout: Environment:", {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "Not set",
