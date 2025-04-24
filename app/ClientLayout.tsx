@@ -38,43 +38,83 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+    return null;
+  };
   useEffect(() => {
-    const currentToken = localStorage.getItem("token");
+    console.log("ClientLayout: Current pathname:", pathname);
+    console.log("ClientLayout: Environment:", {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "Not set",
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "Not set",
+    });
+
+    const cookieToken = getCookie("token");
+    const localStorageToken = localStorage.getItem("token");
+    let currentToken = cookieToken || localStorageToken;
+    console.log("ClientLayout: Cookie token:", cookieToken ? "Yes" : "No");
+    console.log(
+      "ClientLayout: LocalStorage token:",
+      localStorageToken ? "Yes" : "No"
+    );
+
+    // Sync tokens
+    if (cookieToken && !localStorageToken) {
+      localStorage.setItem("token", cookieToken);
+      currentToken = cookieToken;
+    } else if (localStorageToken && !cookieToken) {
+      document.cookie = `token=${localStorageToken}; path=/; max-age=3600`;
+      currentToken = localStorageToken;
+    }
+
+    console.log("ClientLayout: Token found:", currentToken ? "Yes" : "No");
     setToken(currentToken);
+
+    if (pathname === "/auth/login" || pathname === "/auth/signup") {
+      console.log(`ClientLayout: Skipping redirect for ${pathname}`);
+      setIsLoading(false);
+      return;
+    }
 
     if (currentToken) {
       try {
         const decoded = decodeJwt(currentToken) as JwtPayload;
         const currentTime = Math.floor(Date.now() / 1000);
         if (decoded.exp < currentTime) {
+          console.log(
+            "ClientLayout: Token expired, redirecting to /auth/login"
+          );
           localStorage.removeItem("token");
           document.cookie = "token=; path=/; max-age=0";
           router.push("/auth/login");
           return;
         }
         setRole(decoded.role);
-        console.log("Decoded role:", decoded.role);
+        console.log("ClientLayout: Decoded role:", decoded.role);
 
         // Fetch profile image based on role
         if (decoded.role === "admin") {
+          console.log("ClientLayout: Fetching admin profile");
           getAdminProfile()
             .then((data: any) => {
-              console.log("data", data);
+              console.log("ClientLayout: Admin profile data:", data);
               const { admin } = data;
-
               if (admin.profile_photo) {
                 setProfileImage(admin.profile_photo);
-                localStorage.setItem("profileImage", admin.profile_photo); // Optional caching
+                localStorage.setItem("profileImage", admin.profile_photo);
               }
             })
             .catch((err: any) => {
-              console.error("Failed to fetch admin profile:", err);
+              console.error(
+                "ClientLayout: Failed to fetch admin profile:",
+                err
+              );
             });
         }
-        // For students, you might need a similar API (e.g., getStudentProfile)
-        // else if (decoded.role === "student") { ... }
       } catch (err) {
-        console.error("Token decode error:", err);
+        console.error("ClientLayout: Token decode error:", err);
         localStorage.removeItem("token");
         document.cookie = "token=; path=/; max-age=0";
         router.push("/auth/login");
@@ -86,22 +126,35 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     // Redirect logic based on role and token
     if (currentToken && role) {
+      console.log("ClientLayout: Token and role present, checking redirects");
       if (publicRoutes.includes(pathname)) {
-        router.push(role === "student" ? "/student" : "/dashboard");
+        const redirectTo = role === "student" ? "/student" : "/dashboard";
+        console.log(
+          `ClientLayout: Redirecting from public route ${pathname} to ${redirectTo}`
+        );
+        router.push(redirectTo);
         return;
       }
       if (
         protectedRoutes.some((route) => pathname.startsWith(route)) &&
         role !== "admin"
       ) {
-        router.push(role === "student" ? "/student" : "/auth/login");
+        const redirectTo = role === "student" ? "/student" : "/auth/login";
+        console.log(
+          `ClientLayout: Redirecting from protected route ${pathname} to ${redirectTo}`
+        );
+        router.push(redirectTo);
         return;
       }
       if (
         studentRoutes.some((route) => pathname.startsWith(route)) &&
         role !== "student"
       ) {
-        router.push(role === "admin" ? "/dashboard" : "/auth/login");
+        const redirectTo = role === "admin" ? "/dashboard" : "/auth/login";
+        console.log(
+          `ClientLayout: Redirecting from student route ${pathname} to ${redirectTo}`
+        );
+        router.push(redirectTo);
         return;
       }
     } else if (
@@ -112,7 +165,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(
         pathname
       )}`;
+      console.log(
+        `ClientLayout: No token, redirecting from ${pathname} to ${redirectUrl}`
+      );
       router.push(redirectUrl);
+    } else {
+      console.log(`ClientLayout: Allowing navigation to ${pathname}`);
     }
   }, [pathname, router, role]);
 
@@ -124,7 +182,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     role === "student";
   const showLayout = (isProtectedRoute || isStudentRoute) && !!token;
 
-  console.log("showLayout", showLayout);
+  console.log("ClientLayout: showLayout:", showLayout);
 
   if (isLoading) {
     return <Loader />;
