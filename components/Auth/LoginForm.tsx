@@ -18,6 +18,8 @@ import { login } from "../../lib/api/authApi";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/context/ToastContext"; // Add Toast integration
 
+export const dynamic = "force-dynamic";
+
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
