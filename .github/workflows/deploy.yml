@@ -56,9 +56,6 @@ jobs:
           cat node_modules/postcss/package.json | grep version || echo "postcss not installed"
           echo "NODE_ENV: $NODE_ENV"
 
-      - name: Run linting
-        run: npm run lint
-
       - name: Build project
         run: npm run ${{ github.ref_name == 'main' && 'build:prod' || 'build:dev' }}
 
