@@ -40,14 +40,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Debug build environment
+      - name: Debug dependencies and config
         run: |
           echo "Current directory: $(pwd)"
           ls -la
-          echo "tsconfig.json contents:"
-          cat tsconfig.json || echo "tsconfig.json not found"
-          echo "src directory contents:"
-          ls -la src || echo "src directory not found"
+          echo "package.json contents:"
+          cat package.json
+          echo "postcss.config.mjs contents:"
+          cat postcss.config.mjs || echo "postcss.config.mjs not found"
+          echo "tailwind.config.mjs contents:"
+          cat tailwind.config.mjs || echo "tailwind.config.mjs not found"
+          echo "node_modules/tailwindcss version:"
+          cat node_modules/tailwindcss/package.json | grep version || echo "tailwindcss not installed"
+          echo "node_modules/postcss version:"
+          cat node_modules/postcss/package.json | grep version || echo "postcss not installed"
           echo "NODE_ENV: $NODE_ENV"
 
       - name: Build project
