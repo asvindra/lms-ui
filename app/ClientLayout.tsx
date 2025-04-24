@@ -21,9 +21,9 @@ import { ToastContainer } from "react-toastify";
 import { decodeJwt } from "jose";
 import { getAdminProfile } from "@/lib/api/adminApi";
 
-const protectedRoutes = PROTECTED_ROUTES; // Admin routes
+const protectedRoutes = PROTECTED_ROUTES;
 const publicRoutes = PUBLIC_ROUTES;
-const studentRoutes = STUDENT_ROUTES; // Student routes
+const studentRoutes = STUDENT_ROUTES;
 
 interface JwtPayload {
   role: string;
@@ -46,14 +46,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    localStorage.removeItem("token");
-    document.cookie = "token=; path=/; max-age=0";
-    console.log("ClientLayout: Cleared tokens on load");
-    console.log("ClientLayout: Current pathname:", pathname);
+    console.log("ClientLayout: useEffect triggered, pathname:", pathname);
     console.log("ClientLayout: Environment:", {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "Not set",
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "Not set",
     });
+
+    // Temporary token clear (remove after testing)
+    localStorage.removeItem("token");
+    document.cookie = "token=; path=/; max-age=0";
+    console.log("ClientLayout: Cleared tokens on load for testing");
 
     const cookieToken = getCookie("token");
     const localStorageToken = localStorage.getItem("token");
@@ -98,7 +100,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         setRole(decoded.role);
         console.log("ClientLayout: Decoded role:", decoded.role);
 
-        // Fetch profile image based on role
         if (decoded.role === "admin") {
           console.log("ClientLayout: Fetching admin profile");
           getAdminProfile()
@@ -128,7 +129,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     setIsLoading(false);
 
-    // Redirect logic based on role and token
     if (currentToken && role) {
       console.log("ClientLayout: Token and role present, checking redirects");
       if (publicRoutes.includes(pathname)) {
@@ -187,6 +187,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const showLayout = (isProtectedRoute || isStudentRoute) && !!token;
 
   console.log("ClientLayout: showLayout:", showLayout);
+  console.log("ClientLayout: Rendering children for pathname:", pathname);
 
   if (isLoading) {
     return <Loader />;
@@ -240,6 +241,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </Box>
             ) : (
               <Box
+                key={pathname} // Force re-render when pathname changes
                 sx={{
                   minHeight: "100vh",
                   bgcolor: "grey.100",
