@@ -1,6 +1,6 @@
 "use client";
 
-import Settings from "@/components/Settings/Settings";
+import { Settings } from "@mui/icons-material";
 
 export default function SettingsPage() {
   return <Settings />;

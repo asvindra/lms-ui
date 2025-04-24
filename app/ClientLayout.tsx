@@ -2,24 +2,26 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme } from "@/lib/mui-theme";
-import { QueryProvider } from "@/lib/providers/QueryProviders";
+
 import { useRouter, usePathname } from "next/navigation";
-import Header from "@/components/Header/Header";
-import Sidebar from "@/components/Sidebar/Sidebar";
-import Loader from "@/components/Loader/Loader";
 import { Box, CssBaseline } from "@mui/material";
-import { StudentProvider } from "@/lib/context/StudentContext";
+
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import { decodeJwt } from "jose";
 import {
   PROTECTED_ROUTES,
   PUBLIC_ROUTES,
   STUDENT_ROUTES,
-} from "@/lib/constants/constants";
-import { ToastProvider } from "@/lib/context/ToastContext";
-import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
-import { decodeJwt } from "jose";
-import { getAdminProfile } from "@/lib/api/adminApi";
+} from "../lib/constants/constants";
+import { getAdminProfile } from "../lib/api/adminApi";
+import Loader from "../components/Loader/Loader";
+import { StudentProvider } from "../lib/context/StudentContext";
+import { QueryProvider } from "../lib/providers/QueryProviders";
+import { theme } from "../lib/mui-theme";
+import { ToastProvider } from "../lib/context/ToastContext";
+import Header from "../components/Header/Header";
+import Sidebar from "../components/Sidebar/Sidebar";
 
 const protectedRoutes = PROTECTED_ROUTES; // Admin routes
 const publicRoutes = PUBLIC_ROUTES;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
+
 import {
   Box,
   Typography,
@@ -14,10 +14,12 @@ import {
   Fade,
 } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
-import { verifyOtp, resendOtp } from "@/lib/api/authApi";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useToast } from "../../lib/context/ToastContext";
+import { resendOtp, verifyOtp } from "../../lib/api/authApi";
 
 // Define the schema for OTP verification
 const verifyOtpSchema = z.object({

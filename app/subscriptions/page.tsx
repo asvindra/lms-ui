@@ -1,6 +1,6 @@
 "use client";
 
-import { SubscriptionPage } from "@/components/Subscriptions/subscriptions";
+import { SubscriptionPage } from "../../components/Subscriptions/subscriptions";
 
 export default function AdminSubscriptionPage() {
   return <SubscriptionPage />;

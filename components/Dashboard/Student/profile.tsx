@@ -16,8 +16,11 @@ import {
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/lib/context/ToastContext";
-import { getStudentProfile, updateStudentProfile } from "@/lib/api/studentApi";
+import { useToast } from "../../../lib/context/ToastContext";
+import {
+  getStudentProfile,
+  updateStudentProfile,
+} from "../../../lib/api/studentApi";
 
 export default function StudentProfilePage() {
   const [user, setUser] = useState({

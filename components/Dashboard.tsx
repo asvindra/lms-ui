@@ -18,7 +18,7 @@ import {
   Modal,
   Button,
 } from "@mui/material";
-import { useStudents } from "@/lib/context/StudentContext";
+import { useStudents } from "../lib/context/StudentContext";
 
 interface Student {
   id: string;

@@ -18,7 +18,7 @@ import {
   Grid,
 } from "@mui/material";
 import { Add, Delete, Edit, EventSeat } from "@mui/icons-material";
-import { useStudents } from "@/lib/context/StudentContext";
+import { useStudents } from "../../lib/context/StudentContext";
 
 interface TabPanelProps {
   children?: React.ReactNode;

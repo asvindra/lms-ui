@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   configureSeats,
-  getSeatConfig,
   allocateSeat,
   deallocateSeat,
   deleteSeat,
   getStudents,
-} from "@/lib/api/adminApi";
+} from "../../lib/api/adminApi";
 import {
   Box,
   Typography,
@@ -45,6 +43,8 @@ import AddIcon from "@mui/icons-material/Add";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { getSeatConfig } from "../../lib/api/adminApi";
+import { useToast } from "../../lib/context/ToastContext";
 
 // Schema for seat configuration
 const seatConfigSchema = z.object({

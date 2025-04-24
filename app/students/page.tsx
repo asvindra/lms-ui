@@ -1,7 +1,7 @@
 "use client";
 
-import Students from "@/components/Students/StudentForm";
+import StudentList from "../../components/Students/StudentsList";
 
 export default function StudentsListPage() {
-  return <Students />;
+  return <StudentList />;
 }

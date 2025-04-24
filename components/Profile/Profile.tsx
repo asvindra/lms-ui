@@ -15,8 +15,8 @@ import {
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/lib/context/ToastContext";
-import { getAdminProfile, updateAdminProfile } from "@/lib/api/adminApi";
+import { useToast } from "../../lib/context/ToastContext";
+import { getAdminProfile, updateAdminProfile } from "../../lib/api/adminApi";
 
 export default function ProfilePage() {
   const [user, setUser] = useState({
