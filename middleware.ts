@@ -14,10 +14,21 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("token")?.value;
 
-  console.log(`rq`, request);
+  console.log("middleware: Pathname:", pathname);
+  console.log("middleware: Token found:", token ? "Yes" : "No");
+  console.log("middleware: Environment:", {
+    JWT_SECRET: process.env.JWT_SECRET ? "Set" : "Not set",
+  });
 
   // Allow /auth/verify with query params to proceed
   if (pathname.startsWith("/auth/verify") && request.nextUrl.search) {
+    console.log("middleware: Allowing /auth/verify with query params");
+    return NextResponse.next();
+  }
+
+  // Skip redirects for /auth/login and /auth/signup
+  if (pathname === "/auth/login" || pathname === "/auth/signup") {
+    console.log(`middleware: Skipping redirect for ${pathname}`);
     return NextResponse.next();
   }
 
@@ -29,10 +40,13 @@ export async function middleware(request: NextRequest) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
       isValidToken = true;
-      role = payload.role as string; // Assumes token has 'role' field
-      console.log("Token is valid, role:", role);
+      role = payload.role as string;
+      console.log("middleware: Token is valid, role:", role);
     } catch (err) {
-      console.log("Token is invalid or expired:", (err as Error).message);
+      console.log(
+        "middleware: Token is invalid or expired:",
+        (err as Error).message
+      );
       isValidToken = false;
     }
   }
@@ -43,23 +57,24 @@ export async function middleware(request: NextRequest) {
       protectedRoutes.some((route) => pathname.startsWith(route)) ||
       studentRoutes.some((route) => pathname.startsWith(route))
     ) {
-      console.log("No valid token, redirecting to login");
+      console.log("middleware: No valid token, redirecting to login");
       const loginUrl = new URL("/auth/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       const response = NextResponse.redirect(loginUrl);
       response.cookies.set("token", "", { maxAge: -1 });
       return response;
     }
+    console.log("middleware: Allowing public route:", pathname);
     return NextResponse.next();
   }
 
   // Redirect from public routes based on role
   if (publicRoutes.includes(pathname)) {
     if (role === "admin") {
-      console.log("Admin token, redirecting to dashboard");
+      console.log("middleware: Admin token, redirecting to dashboard");
       return NextResponse.redirect(new URL("/dashboard", request.url));
     } else if (role === "student") {
-      console.log("Student token, redirecting to student-home");
+      console.log("middleware: Student token, redirecting to student-home");
       return NextResponse.redirect(new URL("/student", request.url));
     }
   }
@@ -67,9 +82,7 @@ export async function middleware(request: NextRequest) {
   // Protect admin routes from students
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     if (role !== "admin") {
-      console.log(
-        "Non-admin attempting admin route, redirecting based on role"
-      );
+      console.log("middleware: Non-admin attempting admin route, redirecting");
       const redirectUrl = role === "student" ? "/student" : "/auth/login";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
@@ -79,14 +92,14 @@ export async function middleware(request: NextRequest) {
   if (studentRoutes.some((route) => pathname.startsWith(route))) {
     if (role !== "student") {
       console.log(
-        "Non-student attempting student route, redirecting based on role"
+        "middleware: Non-student attempting student route, redirecting"
       );
       const redirectUrl = role === "admin" ? "/dashboard" : "/auth/login";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
   }
 
-  // Allow valid requests to proceed
+  console.log("middleware: Allowing valid request to:", pathname);
   return NextResponse.next();
 }
 
