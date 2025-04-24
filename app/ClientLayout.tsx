@@ -45,18 +45,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     return null;
   };
 
-  // Force navigation synchronization with hard navigation fallback
-  useEffect(() => {
-    console.log("ClientLayout: Navigation sync, pathname:", pathname);
-    if (typeof window !== "undefined") {
-      const currentPath = window.location.pathname;
-      if (currentPath !== pathname) {
-        console.log("ClientLayout: Forcing hard navigation to:", pathname);
-        window.location.assign(pathname); // Hard navigation fallback
-      }
-    }
-  }, [pathname]);
-
   useEffect(() => {
     console.log("ClientLayout: useEffect triggered, pathname:", pathname);
     console.log("ClientLayout: Environment:", {
