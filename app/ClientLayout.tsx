@@ -45,6 +45,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     return null;
   };
 
+  // Force navigation synchronization
+  useEffect(() => {
+    console.log("ClientLayout: Navigation sync, pathname:", pathname);
+    // Ensure router is in sync with pathname
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname !== pathname
+    ) {
+      console.log("ClientLayout: Forcing router sync to:", pathname);
+      router.replace(pathname);
+    }
+  }, [pathname, router]);
+
   useEffect(() => {
     console.log("ClientLayout: useEffect triggered, pathname:", pathname);
     console.log("ClientLayout: Environment:", {
@@ -241,7 +254,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </Box>
             ) : (
               <Box
-                key={pathname} // Force re-render when pathname changes
+                key={pathname}
                 sx={{
                   minHeight: "100vh",
                   bgcolor: "grey.100",

@@ -7,8 +7,8 @@ import {
 import { jwtVerify } from "jose";
 
 const publicRoutes = PUBLIC_ROUTES;
-const protectedRoutes = PROTECTED_ROUTES; // Admin routes
-const studentRoutes = STUDENT_ROUTES; // Student routes
+const protectedRoutes = PROTECTED_ROUTES;
+const studentRoutes = STUDENT_ROUTES;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,19 +20,16 @@ export async function middleware(request: NextRequest) {
     JWT_SECRET: process.env.JWT_SECRET ? "Set" : "Not set",
   });
 
-  // Allow /auth/verify with query params to proceed
   if (pathname.startsWith("/auth/verify") && request.nextUrl.search) {
     console.log("middleware: Allowing /auth/verify with query params");
     return NextResponse.next();
   }
 
-  // Skip redirects for /auth/login and /auth/signup
   if (pathname === "/auth/login" || pathname === "/auth/signup") {
     console.log(`middleware: Skipping redirect for ${pathname}`);
     return NextResponse.next();
   }
 
-  // Validate token and extract role
   let isValidToken = false;
   let role: string | undefined;
   if (token) {
@@ -51,7 +48,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If no valid token, redirect to login for protected or student routes
   if (!isValidToken) {
     if (
       protectedRoutes.some((route) => pathname.startsWith(route)) ||
@@ -68,7 +64,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect from public routes based on role
   if (publicRoutes.includes(pathname)) {
     if (role === "admin") {
       console.log("middleware: Admin token, redirecting to dashboard");
@@ -79,7 +74,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect admin routes from students
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     if (role !== "admin") {
       console.log("middleware: Non-admin attempting admin route, redirecting");
@@ -88,7 +82,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect student routes from admins
   if (studentRoutes.some((route) => pathname.startsWith(route))) {
     if (role !== "student") {
       console.log(
