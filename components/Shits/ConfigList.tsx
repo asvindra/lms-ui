@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useToast } from "@/lib/context/ToastContext";
+
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  getConfiguredShifts,
-  updateShifts, // Renamed from updateShifts for clarity
-  deleteShifts,
-  deleteShiftById,
-} from "@/lib/api/adminApi";
+
 import {
   Box,
   Typography,
@@ -30,6 +25,12 @@ import Table from "../Table/Table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import {
+  deleteShifts,
+  getConfiguredShifts,
+  updateShifts,
+} from "../../lib/api/adminApi";
+import { useToast } from "../../lib/context/ToastContext";
 interface Shift {
   shift_number: number;
   start_time: string;

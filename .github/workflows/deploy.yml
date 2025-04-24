@@ -40,8 +40,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run linting
+        run: npm run lint
+
+      - name: Debug build environment
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -la
+          echo "tsconfig.json contents:"
+          cat tsconfig.json || echo "tsconfig.json not found"
+          echo "src directory contents:"
+          ls -la src || echo "src directory not found"
+          echo "NODE_ENV: $NODE_ENV"
+
       - name: Build project
-        run: npm run build
+        run: npm run ${{ github.ref_name == 'main' && 'build:prod' || 'build:dev' }}
 
       - name: Run tests
         run: npm run test || echo "No tests defined yet."

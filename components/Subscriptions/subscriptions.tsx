@@ -9,7 +9,7 @@ import {
   Box,
 } from "@mui/material";
 import axios from "axios";
-import { useToast } from "@/lib/context/ToastContext"; // Adjust path
+import { useToast } from "../../lib/context/ToastContext";
 
 export const SubscriptionPage = () => {
   const [plans, setPlans] = useState([]);

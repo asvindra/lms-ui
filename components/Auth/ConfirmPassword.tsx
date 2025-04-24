@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
+
 import {
   Box,
   Typography,
@@ -13,10 +13,12 @@ import {
   Fade,
 } from "@mui/material";
 import { useMutation } from "@tanstack/react-query";
-import { confirmPassword } from "@/lib/api/authApi";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { confirmPassword } from "../../lib/api/authApi";
+import { useToast } from "../../lib/context/ToastContext";
 
 // Define the schema for password reset
 const resetPasswordSchema = z

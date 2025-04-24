@@ -2,13 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
+
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  getStudents,
-  deleteStudent,
-  getConfiguredShifts,
-} from "@/lib/api/adminApi";
+
 import {
   Box,
   Typography,
@@ -24,6 +20,12 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Table from "../Table/Table";
+import {
+  deleteStudent,
+  getConfiguredShifts,
+  getStudents,
+} from "../../lib/api/adminApi";
+import { useToast } from "../../lib/context/ToastContext";
 
 export default function StudentList() {
   const router = useRouter();

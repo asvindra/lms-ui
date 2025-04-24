@@ -2,15 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
+
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  addStudent,
-  updateStudent,
-  getStudents,
-  getConfiguredShifts,
-  getAvailableSeats,
-} from "@/lib/api/adminApi";
+
 import {
   Box,
   Typography,
@@ -34,6 +28,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { format } from "date-fns";
+import { useToast } from "../../lib/context/ToastContext";
+import {
+  addStudent,
+  getAvailableSeats,
+  getConfiguredShifts,
+  getStudents,
+  updateStudent,
+} from "../../lib/api/adminApi";
 
 // Schema for adding/updating a student
 const studentSchema = z.object({

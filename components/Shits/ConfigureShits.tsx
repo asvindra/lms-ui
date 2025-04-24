@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { configureShifts, getConfiguredShifts } from "@/lib/api/adminApi";
+
 import {
   Box,
   Typography,
@@ -28,6 +27,8 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useToast } from "../../lib/context/ToastContext";
+import { configureShifts, getConfiguredShifts } from "../../lib/api/adminApi";
 
 // Schema for initial shift config
 const shiftConfigSchema = z
