@@ -45,18 +45,17 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     return null;
   };
 
-  // Force navigation synchronization
+  // Force navigation synchronization with hard navigation fallback
   useEffect(() => {
     console.log("ClientLayout: Navigation sync, pathname:", pathname);
-    // Ensure router is in sync with pathname
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname !== pathname
-    ) {
-      console.log("ClientLayout: Forcing router sync to:", pathname);
-      router.replace(pathname);
+    if (typeof window !== "undefined") {
+      const currentPath = window.location.pathname;
+      if (currentPath !== pathname) {
+        console.log("ClientLayout: Forcing hard navigation to:", pathname);
+        window.location.assign(pathname); // Hard navigation fallback
+      }
     }
-  }, [pathname, router]);
+  }, [pathname]);
 
   useEffect(() => {
     console.log("ClientLayout: useEffect triggered, pathname:", pathname);
