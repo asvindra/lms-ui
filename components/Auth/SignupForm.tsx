@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { signup } from "../../lib/api/authApi";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/lib/context/ToastContext";
+import { useToast } from "../../lib/context/ToastContext";
 
 const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
