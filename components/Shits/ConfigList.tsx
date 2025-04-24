@@ -30,7 +30,12 @@ import Table from "../Table/Table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
+interface Shift {
+  shift_number: number;
+  start_time: string;
+  end_time: string;
+  fees: number;
+}
 // Schema for updating a shift and discounts
 const updateShiftSchema = (numShifts: number) =>
   z.object({
@@ -146,21 +151,21 @@ export default function ShiftsConfigured() {
     deleteShiftMutation(shiftNumber);
   };
 
-  const handleEditShift = (shift: any) => {
+  const handleEditShift = (shift: Shift) => {
     setEditShift(shift);
-    setValue("shiftNumber", shift.shift_number);
-    setValue("startTime", shift.start_time);
-    setValue("endTime", shift.end_time);
-    setValue("fees", shift.fees);
+    setValue("shiftNumber", shift.shift_number as never);
+    setValue("startTime", shift.start_time as never);
+    setValue("endTime", shift.end_time as never);
+    setValue("fees", shift.fees as never);
     data?.discounts.forEach((discount: any) => {
       if (discount.min_shifts === data.shifts.length) {
-        setValue("discountAllShifts", discount.discount_percentage);
+        setValue("discountAllShifts", discount.discount_percentage as never);
       } else if (discount.min_shifts === 1) {
-        setValue("discountSingle", discount.discount_percentage);
+        setValue("discountSingle", discount.discount_percentage as never);
       } else if (discount.min_shifts === 2) {
-        setValue("discountDouble", discount.discount_percentage);
+        setValue("discountDouble", discount.discount_percentage as never);
       } else if (discount.min_shifts === 3) {
-        setValue("discountTriple", discount.discount_percentage);
+        setValue("discountTriple", discount.discount_percentage as never);
       }
     });
   };
