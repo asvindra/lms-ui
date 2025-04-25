@@ -5,12 +5,14 @@ import {
   CONFIGURE_SHIFTS,
   CONFIG_SEAT,
   DEALLOCATE_SEAT,
+  DELETE_PAST_STUDENT,
   DELETE_SEAT,
   DELETE_SHIFTS,
   DELETE_SHIFTS_BY_ID,
   DELETE_STUDENT,
   GET_ADMIN_PROFILE,
   GET_AVAILABLE_SEATS,
+  GET_PAST_STUDENTS,
   GET_STUDENTS,
   SHIFTS_CONFIGURED,
   UPDATE_ADMIN_PROFILE,
@@ -105,6 +107,16 @@ export const deleteStudent = (data: any) =>
     });
 export const getStudents = () =>
   apiClient.get<GetStudentsRequest>(GET_STUDENTS).then((res: any) => {
+    return res.data;
+  });
+export const deletePastStudent = (data: any) =>
+  apiClient
+    .delete<DeleteStudentRequest>(`${DELETE_PAST_STUDENT}/${data}`, data)
+    .then((res: any) => {
+      return res.data;
+    });
+export const getPastStudents = () =>
+  apiClient.get<GetStudentsRequest>(GET_PAST_STUDENTS).then((res: any) => {
     return res.data;
   });
 

@@ -32,9 +32,10 @@ import { PaymentOutlined, PlaceOutlined } from "@mui/icons-material";
 
 interface SidebarProps {
   role: string | null; // "admin" or "student"
+  isMaster: boolean;
 }
 
-const Sidebar = ({ role }: SidebarProps) => {
+const Sidebar = ({ role, isMaster }: SidebarProps) => {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [configOpen, setConfigOpen] = useState(false); // State for Configuration submenu
@@ -69,8 +70,17 @@ const Sidebar = ({ role }: SidebarProps) => {
       ],
     },
     { text: "Payments", path: "/payments", icon: <PaymentOutlined /> },
-    { text: "Students", path: "/students", icon: <GroupIcon /> },
-    { text: "Plans", path: "/subscriptions", icon: <PlaceOutlined /> },
+    { text: "Past Students", path: "/past/students", icon: <GroupIcon /> },
+    { text: "Plans", path: "/plans", icon: <PlaceOutlined /> },
+    ...(isMaster
+      ? [
+          {
+            text: "Configure Plans",
+            path: "/master/plans",
+            icon: <PlaceOutlined />,
+          },
+        ]
+      : []),
     {
       text: "Subscription",
       path: "/dashboard/subscription",
