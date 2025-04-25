@@ -7,8 +7,6 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-console.log("api url", process.env);
-
 // Interceptor to add Authorization token (client-side only)
 apiClient.interceptors.request.use((config: any) => {
   if (typeof window !== "undefined") {

@@ -27,6 +27,7 @@ const studentRoutes = STUDENT_ROUTES; // Student routes
 
 interface JwtPayload {
   role: string;
+  isMaster: boolean;
   exp: number;
 }
 
@@ -35,6 +36,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [token, setToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [isMaster, setMaster] = useState<string | boolean>(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,7 +54,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           router.push("/auth/login");
           return;
         }
+        console.log("decoded", decoded);
+
         setRole(decoded.role);
+        setMaster(decoded.isMaster ? true : false);
         console.log("Decoded role:", decoded.role);
 
         // Fetch profile image based on role
@@ -154,7 +159,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     overflow: "hidden",
                   }}
                 >
-                  <Sidebar role={role} />
+                  <Sidebar role={role} isMaster={isMaster} />
                   <Box
                     component="main"
                     sx={{
