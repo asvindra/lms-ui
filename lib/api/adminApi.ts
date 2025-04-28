@@ -13,7 +13,9 @@ import {
   GET_ADMIN_PROFILE,
   GET_AVAILABLE_SEATS,
   GET_PAST_STUDENTS,
+  GET_PLANS,
   GET_STUDENTS,
+  GET_SUBSCRIPTION_STATUS,
   SHIFTS_CONFIGURED,
   UPDATE_ADMIN_PROFILE,
   UPDATE_SEAT,
@@ -149,5 +151,15 @@ export const updateAdminProfile = (data: any) =>
 
 export const getAdminProfile = () =>
   apiClient.get<any>(GET_ADMIN_PROFILE).then((res: any) => {
+    return res.data;
+  });
+
+export const getSubscriptionStatus = () =>
+  apiClient.get<any>(GET_SUBSCRIPTION_STATUS).then((res: any) => {
+    return res.data;
+  });
+
+export const getPlans = () =>
+  apiClient.get<any>(GET_PLANS).then((res: any) => {
     return res.data;
   });

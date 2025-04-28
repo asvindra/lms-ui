@@ -10,14 +10,17 @@ import {
   CardActions,
   Button,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateSubscription,
   usePlans,
   useSubscriptionStatus,
 } from "@/lib/hooks/usePlans";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminPlansPage() {
   const { data: plans = [], isLoading, error } = usePlans();
@@ -25,8 +28,11 @@ export default function AdminPlansPage() {
     useSubscriptionStatus();
   const createSubscription = useCreateSubscription();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const [showProcessing, setShowProcessing] = useState(false);
 
   // Load Razorpay checkout script
   useEffect(() => {
@@ -63,9 +69,13 @@ export default function AdminPlansPage() {
       return;
     }
 
+    console.log("Starting subscription for plan:", planId);
+    setLoadingPlanId(planId);
+    setShowProcessing(false);
+
     try {
-      const userEmail = localStorage.getItem("userEmail") || "admin@gmail.com"; // Replace with auth
-      const userPhone = localStorage.getItem("userPhone") || "1234567890"; // Replace with auth
+      const userEmail = localStorage.getItem("userEmail") || "admin@gmail.com";
+      const userPhone = localStorage.getItem("userPhone") || "1234567890";
       console.log(
         "Initiating subscription for plan:",
         planId,
@@ -91,10 +101,20 @@ export default function AdminPlansPage() {
         subscription_id,
         name: "LMS Subscription",
         description: "Subscribe to LMS plan",
-        handler: function (response: any) {
+        handler: async (response: any) => {
           console.log("Payment successful:", response);
-          toast.success("Payment successful! Subscription is being processed.");
-          router.push("/payments/success");
+          toast.success("Payment successful! Processing your subscription...");
+          setShowProcessing(true);
+          await queryClient.invalidateQueries({
+            queryKey: ["subscriptionStatus"],
+          });
+          await queryClient.invalidateQueries({
+            queryKey: ["adminSubscription"],
+          });
+          setTimeout(() => {
+            console.log("Redirecting to /dashboard/subscription");
+            router.push("/dashboard/subscription");
+          }, 5000);
         },
         prefill: {
           email: userEmail,
@@ -106,7 +126,7 @@ export default function AdminPlansPage() {
       };
 
       const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
+      rzp.on("payment.failed", (response: any) => {
         console.error("Payment failed:", response);
         toast.error(
           `Payment failed: ${response.error?.description || "Unknown error"}`
@@ -119,64 +139,166 @@ export default function AdminPlansPage() {
       toast.error(
         `Failed to initiate subscription: ${err.message || "Unknown error"}`
       );
+    } finally {
+      console.log("Clearing loading state for plan:", planId);
+      setLoadingPlanId(null);
     }
   };
 
-  if (isLoading || statusLoading) return <CircularProgress />;
-  if (error)
-    return <Typography>Error loading plans: {error.message}</Typography>;
-  if (scriptError) return <Typography>{scriptError}</Typography>;
+  if (isLoading || statusLoading) {
+    return (
+      <Container sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CircularProgress />
+        </motion.div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container sx={{ p: 4 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Typography color="error">
+            Error loading plans: {error.message}
+          </Typography>
+        </motion.div>
+      </Container>
+    );
+  }
+
+  if (scriptError) {
+    return (
+      <Container sx={{ p: 4 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Typography color="error">{scriptError}</Typography>
+        </motion.div>
+      </Container>
+    );
+  }
+
+  const hasPendingSubscription =
+    subscriptionStatus?.pending_subscriptions?.length > 0;
+  const isSubscribed = subscriptionStatus?.is_subscribed;
 
   return (
     <Container>
-      <Typography variant="h4" gutterBottom>
-        Subscription Plans
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        {subscriptionStatus?.is_subscribed
-          ? "You are currently subscribed!"
-          : "Choose a plan to subscribe."}
-      </Typography>
-      <Grid container spacing={3}>
-        {plans.map((plan: any) => (
-          <Grid item xs={12} sm={6} md={4} key={plan.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5" component="div">
-                  {plan.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {plan.description}
-                </Typography>
-                <Typography variant="h6" sx={{ mt: 2 }}>
-                  ₹{plan.amount / 100}{" "}
-                  {plan.billing_cycle === "lifetime"
-                    ? ""
-                    : `/${plan.billing_cycle}`}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={
-                    createSubscription.isPending ||
-                    !scriptLoaded ||
-                    subscriptionStatus?.is_subscribed
-                  }
-                >
-                  {createSubscription.isPending ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    "Subscribe"
-                  )}
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Subscription Plans
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          {isSubscribed
+            ? "You are currently subscribed!"
+            : hasPendingSubscription
+            ? "Your subscription is under processing."
+            : "Choose a plan to subscribe."}
+        </Typography>
+        <AnimatePresence>
+          {(showProcessing || hasPendingSubscription) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {showProcessing
+                  ? "Your subscription is being processed. This may take a few seconds. You will be redirected to the subscription status page shortly."
+                  : "Your subscription is under processing. Please wait until it is completed or canceled before subscribing again."}
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <Grid container spacing={3}>
+          {plans.map((plan: any) => (
+            <Grid item xs={12} sm={6} md={4} key={plan.id}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 * plans.indexOf(plan) }}
+              >
+                <Card>
+                  <CardContent>
+                    <Typography variant="h5" component="div">
+                      {plan.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {plan.description}
+                    </Typography>
+                    <Typography variant="h6" sx={{ mt: 2 }}>
+                      ₹{plan.amount / 100}{" "}
+                      {plan.billing_cycle === "lifetime"
+                        ? ""
+                        : `/${plan.billing_cycle}`}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleSubscribe(plan.id)}
+                        disabled={
+                          loadingPlanId !== null ||
+                          !scriptLoaded ||
+                          isSubscribed ||
+                          hasPendingSubscription
+                        }
+                        sx={{ minWidth: 100 }}
+                      >
+                        <AnimatePresence mode="wait">
+                          {loadingPlanId === plan.id ? (
+                            <motion.div
+                              key="loading"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <CircularProgress size={24} />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="subscribe"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              Subscribe
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Button>
+                    </motion.div>
+                  </CardActions>
+                </Card>
+              </motion.div>
+            </Grid>
+          ))}
+        </Grid>
+      </motion.div>
     </Container>
   );
 }

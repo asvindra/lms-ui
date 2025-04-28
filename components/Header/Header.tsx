@@ -11,23 +11,29 @@ import {
 import { useRouter } from "next/navigation";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import { useEffect } from "react";
 
 interface HeaderProps {
   profileImage?: string | null;
   role?: string | null;
+  isSubscribed: boolean;
 }
 
-export default function Header({ profileImage, role }: HeaderProps) {
+export default function Header({
+  profileImage,
+  role,
+  isSubscribed,
+}: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.clear();
     localStorage.removeItem("profileImage"); // Clear cached image
     document.cookie = "token=; path=/; max-age=0"; // Clear cookie
     router.push("/auth/login");
   };
 
-  console.log("profileImage", profileImage);
+  useEffect(() => {}, [isSubscribed]);
 
   return (
     <AppBar

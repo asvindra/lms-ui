@@ -7,7 +7,6 @@ export const PUBLIC_ROUTES = [
   "/auth/confirm-password",
 ];
 
-// Admin-specific protected routes
 export const PROTECTED_ROUTES = [
   "/dashboard",
   "/dashboard/requests",
@@ -30,7 +29,6 @@ export const PROTECTED_ROUTES = [
   "/configure/students/student-list",
 ];
 
-// Student-specific protected routes
 export const STUDENT_ROUTES = [
   "/student",
   "/student/profile",
