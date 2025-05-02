@@ -45,6 +45,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const isSubscribed = localStorage.getItem("isSubscribed");
+    const currentToken = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    setToken(currentToken);
+    setRole(role);
     if (isSubscribed) {
       setIsSubscribed(isSubscribed === "true" || false);
     }
@@ -148,6 +152,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, [pathname, router, role, isSubscribed, token, isSubLoading]);
 
+  console.log("pathname", pathname, "role", role);
+
   const isProtectedRoute =
     protectedRoutes.some((route) => pathname.startsWith(route)) &&
     role === "admin";
@@ -159,6 +165,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   console.log(
     "showLayout:",
     "token",
+    token,
     !!token,
     "isProtectedRoute",
     isProtectedRoute,
