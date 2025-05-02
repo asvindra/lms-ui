@@ -27,13 +27,19 @@ export default function Header({
   const router = useRouter();
 
   const handleLogout = () => {
+    console.log("Initiating logout");
+    // Clear all localStorage
     localStorage.clear();
-    localStorage.removeItem("profileImage"); // Clear cached image
-    document.cookie = "token=; path=/; max-age=0"; // Clear cookie
-    router.push("/auth/login");
+    // Explicitly remove specific items
+    localStorage.removeItem("token");
+    localStorage.removeItem("isSubscribed");
+    localStorage.removeItem("profileImage");
+    // Clear token cookie
+    document.cookie = "token=; path=/; max-age=0";
+    // Force full page reload to login
+    console.log("Redirecting to /auth/login");
+    window.location.href = "/auth/login";
   };
-
-  useEffect(() => {}, [isSubscribed]);
 
   return (
     <AppBar
