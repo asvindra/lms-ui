@@ -7,14 +7,14 @@ import {
 import { jwtVerify } from "jose";
 
 const publicRoutes = PUBLIC_ROUTES;
-const protectedRoutes = PROTECTED_ROUTES; // Admin routes
-const studentRoutes = STUDENT_ROUTES; // Student routes
+const protectedRoutes = PROTECTED_ROUTES;
+const studentRoutes = STUDENT_ROUTES;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("token")?.value;
 
-  console.log(`rq`, request);
+  console.log("Middleware request:", { pathname, token });
 
   // Allow /auth/verify with query params to proceed
   if (pathname.startsWith("/auth/verify") && request.nextUrl.search) {
@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
       isValidToken = true;
-      role = payload.role as string; // Assumes token has 'role' field
+      role = payload.role as string;
       console.log("Token is valid, role:", role);
     } catch (err) {
       console.log("Token is invalid or expired:", (err as Error).message);

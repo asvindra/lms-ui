@@ -13,66 +13,81 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
-import GroupIcon from "@mui/icons-material/Group"; // For students
-import EventSeatIcon from "@mui/icons-material/EventSeat"; // For seats
-import ScheduleIcon from "@mui/icons-material/Schedule"; // For shifts
+import GroupIcon from "@mui/icons-material/Group";
+import EventSeatIcon from "@mui/icons-material/EventSeat";
+import ScheduleIcon from "@mui/icons-material/Schedule";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import SchoolIcon from "@mui/icons-material/School"; // For courses
-import AssignmentIcon from "@mui/icons-material/Assignment"; // For assignments
-import GradeIcon from "@mui/icons-material/Grade"; // For grades
 import { PaymentOutlined, PlaceOutlined } from "@mui/icons-material";
 
 interface SidebarProps {
   role: string | null; // "admin" or "student"
   isMaster: boolean;
+  isSubscribed: boolean;
 }
 
-const Sidebar = ({ role, isMaster }: SidebarProps) => {
+const Sidebar = ({ role, isMaster, isSubscribed }: SidebarProps) => {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false); // State for Configuration submenu
+  const [configOpen, setConfigOpen] = useState(false);
   const fullWidth = 240;
   const collapsedWidth = 80;
 
-  // Admin menu items
+  useEffect(() => {}, [isSubscribed]);
+
   const adminMenuItems = [
-    { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+    ...(isSubscribed
+      ? [
+          { text: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+          {
+            text: "Configuration",
+            icon: <SettingsIcon />,
+            subItems: [
+              {
+                text: "Shifts",
+                path: "/configure/shifts",
+                icon: <ScheduleIcon />,
+              },
+              {
+                text: "Configured Shifts",
+                path: "/configure/shifts-configured",
+                icon: <ScheduleIcon />,
+              },
+              {
+                text: "Seats",
+                path: "/configure/seats",
+                icon: <EventSeatIcon />,
+              },
+              {
+                text: "Add Student",
+                path: "/configure/students/add-student",
+                icon: <GroupIcon />,
+              },
+              {
+                text: "Student List",
+                path: "/configure/students/student-list",
+                icon: <GroupIcon />,
+              },
+            ],
+          },
+          { text: "Payments", path: "/payments", icon: <PaymentOutlined /> },
+          {
+            text: "Past Students",
+            path: "/past/students",
+            icon: <GroupIcon />,
+          },
+          { text: "Settings", path: "/settings", icon: <SettingsIcon /> },
+        ]
+      : []),
     { text: "Profile", path: "/profile", icon: <PersonIcon /> },
-    {
-      text: "Configuration",
-      icon: <SettingsIcon />,
-      subItems: [
-        { text: "Shifts", path: "/configure/shifts", icon: <ScheduleIcon /> },
-        {
-          text: "Configured Shifts",
-          path: "/configure/shifts-configured",
-          icon: <ScheduleIcon />,
-        },
-        { text: "Seats", path: "/configure/seats", icon: <EventSeatIcon /> },
-        {
-          text: "Add Student",
-          path: "/configure/students/add-student",
-          icon: <GroupIcon />,
-        },
-        {
-          text: "Student List",
-          path: "/configure/students/student-list",
-          icon: <GroupIcon />,
-        },
-      ],
-    },
-    { text: "Payments", path: "/payments", icon: <PaymentOutlined /> },
-    { text: "Past Students", path: "/past/students", icon: <GroupIcon /> },
     { text: "Plans", path: "/plans", icon: <PlaceOutlined /> },
-    ...(isMaster
+    ...(isMaster && isSubscribed
       ? [
           {
             text: "Configure Plans",
@@ -88,14 +103,12 @@ const Sidebar = ({ role, isMaster }: SidebarProps) => {
     },
   ];
 
-  // Student menu items
   const studentMenuItems = [
     { text: "Home", path: "/student", icon: <DashboardIcon /> },
-    { text: "Profile", path: "/student/profile", icon: <DashboardIcon /> },
-    // { text: "Requests", path: "/student/requests", icon: <SchoolIcon /> },
+    { text: "Profile", path: "/student/profile", icon: <PersonIcon /> },
+    { text: "Requests", path: "/student/requests", icon: <SettingsIcon /> },
   ];
 
-  // Select menu items based on role
   const menuItems = role === "student" ? studentMenuItems : adminMenuItems;
 
   const handleToggle = () => {
@@ -181,7 +194,7 @@ const Sidebar = ({ role, isMaster }: SidebarProps) => {
                         key={subItem.text}
                         disablePadding
                         sx={{
-                          pl: 4, // Indent subitems
+                          pl: 4,
                           "&:hover": {
                             backgroundColor: "#1976d2",
                             "& .MuiListItemIcon-root, & .MuiListItemText-primary":

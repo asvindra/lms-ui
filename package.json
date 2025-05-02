@@ -24,7 +24,7 @@
     "axios": "^1.8.2",
     "cors": "^2.8.5",
     "date-fns": "^2.30.0",
-    "framer-motion": "^12.4.10",
+    "framer-motion": "^12.9.2",
     "jose": "^6.0.10",
     "next": "^15.2.1",
     "react": "^19.0.0",
