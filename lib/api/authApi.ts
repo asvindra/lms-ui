@@ -52,6 +52,7 @@ export const login = (data: LoginRequest) =>
     if (typeof window !== "undefined") {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("isSubscribed", res.data.user.is_subscribed);
+      localStorage.setItem("role", res.data.user.role);
     }
     return res.data;
   });
