@@ -48,9 +48,10 @@ export const signup = (data: SignupRequest) =>
   apiClient.post<SignupResponse>(SIGNUP, data).then((res) => res.data);
 
 export const login = (data: LoginRequest) =>
-  apiClient.post<LoginResponse>(LOGIN, data).then((res) => {
+  apiClient.post<LoginResponse>(LOGIN, data).then((res: any) => {
     if (typeof window !== "undefined") {
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("isSubscribed", res.data.user.is_subscribed);
     }
     return res.data;
   });

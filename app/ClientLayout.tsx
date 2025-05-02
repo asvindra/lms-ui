@@ -39,16 +39,20 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [isMaster, setMaster] = useState<boolean>(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(
-    localStorage.getItem("isSubscribed") === "true" || false
-  );
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubLoading, setIsSubLoading] = useState(true);
 
   useEffect(() => {
+    const isSubscribed = localStorage.getItem("isSubscribed");
+    if (isSubscribed) {
+      setIsSubscribed(isSubscribed === "true" || false);
+    }
+  });
+
+  useEffect(() => {
     const currentToken = localStorage.getItem("token");
     setToken(currentToken);
-
     if (currentToken) {
       try {
         const decoded = decodeJwt(currentToken) as JwtPayload;
@@ -60,7 +64,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           router.push("/auth/login");
           return;
         }
-        console.log("Decoded JWT:", decoded);
 
         setRole(decoded.role);
         setMaster(decoded.isMaster || false);
@@ -80,24 +83,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             .catch((err: any) => {
               console.error("Failed to fetch admin profile:", err);
             });
-
-          // Fetch subscription status
-          setIsSubLoading(true);
-          getSubscriptionStatus()
-            .then((data: any) => {
-              console.log("Subscription status data:", data);
-              const subscribed = data.is_subscribed || false;
-              setIsSubscribed(subscribed);
-              localStorage.setItem("isSubscribed", subscribed.toString());
-            })
-            .catch((err: any) => {
-              console.error("Failed to fetch subscription status:", err);
-              setIsSubscribed(false);
-              localStorage.setItem("isSubscribed", "false");
-            })
-            .finally(() => {
-              setIsSubLoading(false);
-            });
+          setIsSubLoading(false);
         } else {
           setIsSubLoading(false); // Non-admins don't need subscription check
         }
@@ -114,7 +100,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(false);
-  }, [router]);
+  }, [router, isSubscribed]);
 
   useEffect(() => {
     // Redirect logic based on role, token, and subscription status
@@ -170,7 +156,16 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     role === "student";
   const showLayout = (isProtectedRoute || isStudentRoute) && !!token;
 
-  console.log("showLayout:", showLayout, "isSubscribed:", isSubscribed);
+  console.log(
+    "showLayout:",
+    "token",
+    !!token,
+    "isProtectedRoute",
+    isProtectedRoute,
+    showLayout,
+    "isSubscribed:",
+    isSubscribed
+  );
 
   if (isLoading || isSubLoading) {
     return <Loader />;
